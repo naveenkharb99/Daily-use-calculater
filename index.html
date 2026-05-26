@@ -6,7 +6,1315 @@
   <title>SpeedRun Alarm | Pi Network Auth | Run to Dismiss</title>
   <!-- Pi Network SDK -->
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <style><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>SpeedRun Alarm | Pi Payments | Pro Features</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: system-ui, -apple-system, 'Segoe UI', 'Inter', sans-serif;
+      padding: 12px;
+    }
+
+    .app-container {
+      max-width: 500px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 2rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      padding: 1.2rem;
+      border: 1px solid #f0f0f0;
+    }
+
+    /* Pi Auth & Payment Section */
+    .pi-section {
+      background: linear-gradient(135deg, #1a2a3a, #0f1a24);
+      border-radius: 1.3rem;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border: 1px solid #fbbf24;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.8rem;
+    }
+    .username-display {
+      color: #facc15;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .auth-status {
+      font-size: 0.7rem;
+      color: #94a3b8;
+    }
+    .pi-btn {
+      background: #facc15;
+      color: #1e293b;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 2rem;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+    }
+    .payment-card {
+      background: #0f172a;
+      border-radius: 1rem;
+      padding: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    .product-name {
+      color: #facc15;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+    .product-price {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+    }
+    .buy-btn {
+      background: #10b981;
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.6rem;
+      font-size: 0.85rem;
+    }
+    .pro-badge {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      color: #1e293b;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 800;
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #2c7a6e, #1e5a4f);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-align: center;
+    }
+
+    .premium-badge {
+      background: #fef3c7;
+      text-align: center;
+      padding: 0.25rem;
+      border-radius: 40px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #b45309;
+      margin: 0.3rem 0;
+      border: 1px solid #fde68a;
+    }
+
+    .live-clock {
+      background: #f8fafc;
+      border-radius: 1.5rem;
+      padding: 0.5rem;
+      text-align: center;
+      margin: 0.6rem 0;
+      border: 1px solid #e2e8f0;
+    }
+    #liveClock {
+      font-family: monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 0.4rem;
+      background: #f1f5f9;
+      border-radius: 2rem;
+      padding: 0.25rem;
+      margin-bottom: 0.8rem;
+    }
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      padding: 0.5rem 0;
+      border-radius: 1.8rem;
+      font-weight: 600;
+      font-size: 0.75rem;
+      color: #64748b;
+      cursor: pointer;
+    }
+    .tab-btn.active {
+      background: #2c7a6e;
+      color: white;
+    }
+
+    .panel {
+      display: none;
+      animation: fade 0.2s ease;
+    }
+    .panel.active-panel {
+      display: block;
+    }
+    @keyframes fade {
+      from { opacity: 0; transform: translateY(4px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    /* Alarm Card */
+    .alarm-card {
+      background: #f8fafc;
+      border-radius: 1.3rem;
+      padding: 0.9rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid #e2e8f0;
+    }
+    .time-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.7rem;
+    }
+    .time-box {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 0.2rem 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.1rem;
+      border: 1px solid #cbd5e1;
+    }
+    .time-box input {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      width: 55px;
+      text-align: center;
+      color: #1e293b;
+      font-family: monospace;
+      font-weight: 700;
+      outline: none;
+    }
+    .ampm-select {
+      background: white;
+      border-radius: 1.8rem;
+      padding: 0.1rem;
+      display: flex;
+      gap: 0.1rem;
+      border: 1px solid #cbd5e1;
+    }
+    .ampm-btn {
+      background: transparent;
+      border: none;
+      padding: 0.3rem 0.8rem;
+      border-radius: 1.8rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .ampm-btn.active-ampm {
+      background: #2c7a6e;
+      color: white;
+    }
+
+    .repeat-options {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      margin: 0.6rem 0;
+    }
+    .repeat-btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 0.3rem 0.8rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.7rem;
+      cursor: pointer;
+      color: #334155;
+    }
+    .repeat-btn.active-repeat {
+      background: #2c7a6e;
+      color: white;
+    }
+    .weekdays {
+      display: flex;
+      gap: 0.3rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 0.5rem 0;
+    }
+    .day-btn {
+      background: #e2e8f0;
+      border: none;
+      width: 34px;
+      padding: 0.3rem 0;
+      border-radius: 2rem;
+      font-weight: 600;
+      font-size: 0.7rem;
+      cursor: pointer;
+      color: #334155;
+    }
+    .day-btn.selected {
+      background: #2c7a6e;
+      color: white;
+    }
+    .set-btn {
+      background: #2c7a6e;
+      color: white;
+      width: 100%;
+      padding: 0.6rem;
+      border-radius: 2rem;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .next-alarm-info {
+      background: #f1f5f9;
+      border-radius: 1.2rem;
+      padding: 0.5rem;
+      text-align: center;
+      font-size: 0.7rem;
+      margin-top: 0.5rem;
+      color: #334155;
+    }
+
+    .speed-tracker-premium {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-radius: 1.3rem;
+      padding: 0.8rem;
+      margin-top: 0.8rem;
+      border: 1px solid #fbbf24;
+    }
+    .speed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .speed-header span {
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.7rem;
+      background: #00000050;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+    }
+    .speed-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #facc15;
+      text-align: center;
+      font-family: monospace;
+    }
+    .speed-unit {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .speed-status {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #cbd5e1;
+      margin-top: 0.3rem;
+    }
+    .progress-bar {
+      background: #334155;
+      border-radius: 1rem;
+      height: 8px;
+      margin: 0.6rem 0;
+      overflow: hidden;
+    }
+    .progress-fill {
+      background: #facc15;
+      width: 0%;
+      height: 100%;
+      border-radius: 1rem;
+      transition: width 0.2s;
+    }
+
+    .ringing-locked {
+      margin-top: 0.8rem;
+      background: #fee2e2;
+      border-radius: 1.3rem;
+      padding: 0.8rem;
+      border: 1px solid #fecaca;
+    }
+    .motion-card {
+      background: white;
+      border-radius: 1.2rem;
+      padding: 0.6rem;
+      text-align: center;
+    }
+    .dismiss-locked-btn {
+      width: 100%;
+      background: #cbd5e1;
+      border: none;
+      padding: 0.6rem;
+      border-radius: 2rem;
+      font-weight: bold;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-top: 0.5rem;
+      cursor: not-allowed;
+    }
+    .dismiss-locked-btn.unlocked {
+      background: #ef4444;
+      color: white;
+      cursor: pointer;
+    }
+    .simulate-step {
+      background: #f59e0b;
+      margin-top: 5px;
+      padding: 5px 12px;
+      border: none;
+      border-radius: 2rem;
+      font-weight: bold;
+      font-size: 0.7rem;
+      cursor: pointer;
+      color: white;
+    }
+
+    .timer-card, .stopwatch-card {
+      background: #f8fafc;
+      border-radius: 1.3rem;
+      padding: 0.9rem;
+      border: 1px solid #e2e8f0;
+    }
+    .timer-display, .stopwatch-display {
+      font-size: 2.2rem;
+      font-family: monospace;
+      font-weight: 700;
+      text-align: center;
+      background: white;
+      padding: 0.5rem;
+      border-radius: 1.3rem;
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+    }
+    .timer-set {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+      margin: 0.7rem 0;
+    }
+    .timer-set input {
+      background: white;
+      border: 1px solid #cbd5e1;
+      padding: 0.4rem;
+      border-radius: 1rem;
+      width: 60px;
+      text-align: center;
+    }
+    .flex-btns {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #e2e8f0;
+      border: none;
+      padding: 0.4rem 0.8rem;
+      border-radius: 2rem;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    button:active { transform: scale(0.96); }
+    .stopwatch-laps {
+      margin-top: 0.7rem;
+      max-height: 100px;
+      overflow-y: auto;
+      background: #f1f5f9;
+      border-radius: 1rem;
+      padding: 0.3rem;
+      font-size: 0.65rem;
+    }
+    .footnote {
+      font-size: 0.55rem;
+      text-align: center;
+      color: #94a3b8;
+      margin-top: 0.8rem;
+    }
+    .warning-text {
+      color: #dc2626;
+      font-size: 0.65rem;
+      text-align: center;
+      margin-top: 0.3rem;
+    }
+    .pro-lock {
+      filter: blur(3px);
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .pro-unlock {
+      filter: none;
+      pointer-events: auto;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <h1>🏃‍♂️ SPEED RUN ALARM</h1>
+  <div class="premium-badge">⭐ PI NETWORK AUTHENTICATED & PAYMENTS ⭐</div>
+
+  <!-- Pi Network Authentication & Payment Section -->
+  <div class="pi-section" id="piSection">
+    <div class="user-info">
+      <div>
+        <div class="username-display" id="usernameDisplay">Not signed in</div>
+        <div class="auth-status" id="authStatus">🔐 Sign in with Pi Network</div>
+      </div>
+      <div>
+        <button id="piSignInBtn" class="pi-btn">🔓 Sign in</button>
+        <button id="piSignOutBtn" class="pi-btn logout-btn" style="display:none;">🚪 Sign out</button>
+      </div>
+    </div>
+    
+    <!-- Payment Product: Premium Unlock (1 Pi) -->
+    <div class="payment-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span class="product-name">✨ PRO UNLOCK ✨</span>
+        <span class="pro-badge" id="proStatusBadge">🔒 LOCKED</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div class="product-price">1 π</div>
+          <div style="font-size: 0.65rem; color: #94a3b8;">Unlock premium themes & remove limits</div>
+        </div>
+        <button id="buyProBtn" class="pi-btn buy-btn" style="background: #10b981; padding: 0.5rem 1.2rem;">💎 Buy Now</button>
+      </div>
+      <div id="paymentStatus" style="font-size: 0.65rem; color: #facc15; margin-top: 0.5rem; text-align: center;"></div>
+    </div>
+  </div>
+
+  <div class="live-clock"><div id="liveClock">--:--:--</div></div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="alarm">⏰ ALARM</button>
+    <button class="tab-btn" data-tab="timer">⏱️ TIMER</button>
+    <button class="tab-btn" data-tab="stopwatch">⚡ STOPW</button>
+  </div>
+
+  <!-- ALARM PANEL (Pro features locked behind payment) -->
+  <div id="alarmPanel" class="panel active-panel">
+    <div class="alarm-card" id="alarmCard">
+      <div class="time-row">
+        <div class="time-box">
+          <input type="number" id="hourInput" min="1" max="12" value="7" step="1">
+          <span>:</span>
+          <input type="number" id="minuteInput" min="0" max="59" value="30" step="1">
+        </div>
+        <div class="ampm-select">
+          <button type="button" id="amBtn" class="ampm-btn active-ampm">AM</button>
+          <button type="button" id="pmBtn" class="ampm-btn">PM</button>
+        </div>
+      </div>
+      <div class="repeat-options">
+        <button id="repeatOnceBtn" class="repeat-btn active-repeat">Once</button>
+        <button id="repeatDailyBtn" class="repeat-btn">Daily</button>
+        <button id="repeatWeeklyBtn" class="repeat-btn">Weekly</button>
+      </div>
+      <div id="weeklyDaysContainer" style="display: none;">
+        <div class="weekdays">
+          <button data-day="0" class="day-btn">S</button><button data-day="1" class="day-btn">M</button>
+          <button data-day="2" class="day-btn">T</button><button data-day="3" class="day-btn">W</button>
+          <button data-day="4" class="day-btn">T</button><button data-day="5" class="day-btn">F</button>
+          <button data-day="6" class="day-btn">S</button>
+        </div>
+      </div>
+      <button class="set-btn" id="setAlarmBtn">⏰ SET ALARM</button>
+      <div class="next-alarm-info">📍 <strong>NEXT:</strong> <span id="nextAlarmDisplay">— not set —</span></div>
+    </div>
+
+    <div class="speed-tracker-premium" id="speedTracker">
+      <div class="speed-header">
+        <span>🏆 PREMIUM SPEED TRACKER</span>
+        <span id="sensorStatus">⚡ Waiting</span>
+      </div>
+      <div class="speed-value">
+        <span id="currentSpeed">0.00</span><span class="speed-unit"> km/h</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="speedProgress"></div>
+      </div>
+      <div class="speed-status" id="speedStatusMsg">📱 Move your phone to measure running speed</div>
+    </div>
+
+    <div id="ringingSection" style="display: none;">
+      <div class="ringing-locked">
+        <div style="text-align:center; font-weight:700; font-size:0.8rem;">🔊 RUN TO STOP (SPEED + STEPS)</div>
+        <div class="motion-card">
+          <div>🎯 NEED: 30 STEPS OR 8 km/h 🔥</div>
+          <div>Steps: <span id="currentStepCount">0</span> / 30</div>
+          <div>Speed: <span id="ringingSpeed">0.00</span> km/h</div>
+          <button id="simulateStepBtn" class="simulate-step">🏃 SIMULATE STEP</button>
+          <button id="forceDismissBtn" class="dismiss-locked-btn" disabled>🔴 STOP (LOCKED)</button>
+          <div id="lockMessage" class="warning-text"></div>
+        </div>
+        <button id="cancelAlarmResetBtn" class="set-btn" style="background:#94a3b8; margin-top:0.4rem;">⚠️ FORCE CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIMER PANEL -->
+  <div id="timerPanel" class="panel">
+    <div class="timer-card">
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="timer-set">
+        <input type="number" id="timerHours" placeholder="HH" min="0" max="23" value="0">
+        <input type="number" id="timerMins" placeholder="MM" min="0" max="59" value="1">
+        <input type="number" id="timerSecs" placeholder="SS" min="0" max="59" value="0">
+      </div>
+      <div class="flex-btns">
+        <button id="startTimerBtn">▶ START</button>
+        <button id="pauseTimerBtn">⏸ PAUSE</button>
+        <button id="resetTimerBtn">🔄 RESET</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOPWATCH PANEL -->
+  <div id="stopwatchPanel" class="panel">
+    <div class="stopwatch-card">
+      <div class="stopwatch-display" id="stopwatchDisplay">00:00:00.00</div>
+      <div class="flex-btns">
+        <button id="swStartBtn">▶ START</button>
+        <button id="swPauseBtn">⏸ PAUSE</button>
+        <button id="swResetBtn">🔄 RESET</button>
+        <button id="swLapBtn" style="background:#f59e0b; color:white;">📋 LAP</button>
+      </div>
+      <div id="lapList" class="stopwatch-laps"></div>
+    </div>
+  </div>
+  <div class="footnote">💡 PRO UNLOCK: 1 Pi - Premium themes, advanced analytics, and exclusive alarm sounds</div>
+</div>
+
+<script>
+  // ======================= PI NETWORK AUTHENTICATION =======================
+  let piUser = null;
+  let piAccessToken = null;
+  let isProUnlocked = localStorage.getItem('pi_pro_unlocked') === 'true';
+  
+  const BACKEND_URL = window.location.origin; // Replace with your backend URL
+  
+  // Update UI based on Pro status
+  function updateProUI() {
+    const proBadge = document.getElementById('proStatusBadge');
+    const alarmCard = document.getElementById('alarmCard');
+    const speedTracker = document.getElementById('speedTracker');
+    
+    if (isProUnlocked) {
+      if (proBadge) proBadge.innerHTML = '✨ PRO UNLOCKED ✨';
+      if (proBadge) proBadge.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+      if (alarmCard) alarmCard.classList.remove('pro-lock');
+      if (alarmCard) alarmCard.classList.add('pro-unlock');
+      if (speedTracker) speedTracker.classList.remove('pro-lock');
+      if (speedTracker) speedTracker.classList.add('pro-unlock');
+    } else {
+      if (proBadge) proBadge.innerHTML = '🔒 LOCKED - BUY PRO';
+      if (proBadge) proBadge.style.background = 'linear-gradient(135deg, #fbbf24, #f59e0b)';
+      if (alarmCard) alarmCard.classList.add('pro-lock');
+      if (alarmCard) alarmCard.classList.remove('pro-unlock');
+      if (speedTracker) speedTracker.classList.add('pro-lock');
+      if (speedTracker) speedTracker.classList.remove('pro-unlock');
+    }
+  }
+  
+  // Validate Pi token with backend
+  async function validatePiToken(accessToken) {
+    try {
+      const response = await fetch('https://api.minepi.com/v2/me', {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${accessToken}` }
+      });
+      if (response.ok) return { valid: true, user: await response.json() };
+      return { valid: false };
+    } catch (error) {
+      return { valid: false };
+    }
+  }
+  
+  function saveSession(username, accessToken) {
+    localStorage.setItem('pi_username', username);
+    localStorage.setItem('pi_access_token', accessToken);
+    localStorage.setItem('pi_session_time', Date.now().toString());
+  }
+  
+  function clearSession() {
+    localStorage.removeItem('pi_username');
+    localStorage.removeItem('pi_access_token');
+    localStorage.removeItem('pi_session_time');
+    piUser = null;
+    piAccessToken = null;
+    document.getElementById('usernameDisplay').innerText = 'Not signed in';
+    document.getElementById('authStatus').innerText = '🔐 Sign in with Pi Network';
+    document.getElementById('piSignInBtn').style.display = 'inline-block';
+    document.getElementById('piSignOutBtn').style.display = 'none';
+  }
+  
+  function updateAuthUI(username) {
+    document.getElementById('usernameDisplay').innerHTML = `👤 ${username}`;
+    document.getElementById('authStatus').innerHTML = '✅ Authenticated with Pi Network';
+    document.getElementById('piSignInBtn').style.display = 'none';
+    document.getElementById('piSignOutBtn').style.display = 'inline-block';
+  }
+  
+  // ======================= PI NETWORK PAYMENTS =======================
+  const PRODUCT = {
+    name: "Pro Unlock - Premium Features",
+    amount: 1,
+    memo: "Unlock premium alarm themes, advanced speed tracking, and exclusive sounds",
+    metadata: { productId: "pro_unlock_v1", feature: "premium_themes" }
+  };
+  
+  // Check for incomplete payments on auth
+  async function checkIncompletePayments() {
+    if (!piAccessToken) return;
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/payments/incomplete`, {
+        headers: { 'Authorization': `Bearer ${piAccessToken}` }
+      });
+      const incompletePayments = await response.json();
+      
+      for (const payment of incompletePayments) {
+        if (payment.status === 'pending' && payment.productId === PRODUCT.metadata.productId) {
+          await completeIncompletePayment(payment);
+        }
+      }
+    } catch (error) {
+      console.error('Incomplete payment check error:', error);
+    }
+  }
+  
+  async function completeIncompletePayment(payment) {
+    const paymentStatusDiv = document.getElementById('paymentStatus');
+    paymentStatusDiv.innerText = '🔄 Completing previous payment...';
+    
+    try {
+      // Step 1: Backend approves payment
+      const approveRes = await fetch(`${BACKEND_URL}/api/payments/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: payment.id })
+      });
+      
+      if (!approveRes.ok) throw new Error('Approval failed');
+      
+      // Step 2: Frontend completes with Pi SDK
+      const completeCallback = async (txid) => {
+        const completeRes = await fetch(`${BACKEND_URL}/api/payments/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: payment.id, txid: txid })
+        });
+        if (completeRes.ok) {
+          isProUnlocked = true;
+          localStorage.setItem('pi_pro_unlocked', 'true');
+          updateProUI();
+          paymentStatusDiv.innerText = '✅ Pro unlocked successfully!';
+        }
+      };
+      
+      await Pi.createPayment({
+        amount: payment.amount,
+        memo: payment.memo,
+        metadata: payment.metadata,
+        toAddress: payment.toAddress
+      }, {
+        onReadyForServerApproval: async (paymentId) => {
+          await fetch(`${BACKEND_URL}/api/payments/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId })
+          });
+        },
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          await completeCallback(txid);
+        },
+        onIncompletePaymentFound: async (paymentId) => {
+          await checkIncompletePayments();
+        }
+      });
+    } catch (error) {
+      paymentStatusDiv.innerText = '❌ Payment completion failed';
+    }
+  }
+  
+  async function initiatePurchase() {
+    if (!piAccessToken) {
+      document.getElementById('paymentStatus').innerText = '❌ Please sign in with Pi Network first';
+      return;
+    }
+    
+    const paymentStatus = document.getElementById('paymentStatus');
+    paymentStatus.innerText = '🔄 Initializing payment...';
+    
+    try {
+      await Pi.init({ version: '2.0', sandbox: true });
+      
+      const paymentData = {
+        amount: PRODUCT.amount,
+        memo: PRODUCT.memo,
+        metadata: PRODUCT.metadata
+      };
+      
+      const callbacks = {
+        onReadyForServerApproval: async (paymentId) => {
+          paymentStatus.innerText = '📡 Approving payment on server...';
+          const response = await fetch(`${BACKEND_URL}/api/payments/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId })
+          });
+          if (!response.ok) throw new Error('Server approval failed');
+          paymentStatus.innerText = '✅ Approved! Waiting for blockchain...';
+        },
+        
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          paymentStatus.innerText = '⛓️ Completing transaction on blockchain...';
+          const response = await fetch(`${BACKEND_URL}/api/payments/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ paymentId, txid })
+          });
+          
+          if (response.ok) {
+            isProUnlocked = true;
+            localStorage.setItem('pi_pro_unlocked', 'true');
+            updateProUI();
+            paymentStatus.innerText = '🎉 Pro unlocked successfully! Thank you!';
+            setTimeout(() => { paymentStatus.innerText = ''; }, 3000);
+          } else {
+            throw new Error('Completion failed');
+          }
+        },
+        
+        onIncompletePaymentFound: async (paymentId) => {
+          paymentStatus.innerText = '🔄 Found incomplete payment, resuming...';
+          await checkIncompletePayments();
+        }
+      };
+      
+      await Pi.createPayment(paymentData, callbacks);
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      paymentStatus.innerText = `❌ Payment failed: ${error.message}`;
+    }
+  }
+  
+  // ======================= AUTHENTICATION FLOW =======================
+  async function initPiAndAuthenticate() {
+    try {
+      if (typeof Pi === 'undefined') {
+        console.error('Pi SDK not loaded');
+        return;
+      }
+      
+      await Pi.init({ version: '2.0', sandbox: true });
+      
+      const storedUsername = localStorage.getItem('pi_username');
+      const storedToken = localStorage.getItem('pi_access_token');
+      const sessionTime = localStorage.getItem('pi_session_time');
+      const isValidSession = storedToken && sessionTime && (Date.now() - parseInt(sessionTime) < 24 * 60 * 60 * 1000);
+      
+      if (storedToken && isValidSession) {
+        const validation = await validatePiToken(storedToken);
+        if (validation.valid) {
+          piAccessToken = storedToken;
+          piUser = validation.user;
+          updateAuthUI(storedUsername);
+          await checkIncompletePayments();
+          return;
+        } else {
+          clearSession();
+        }
+      }
+      
+      await authenticateWithPi();
+      
+    } catch (error) {
+      console.error('Pi initialization error:', error);
+    }
+  }
+  
+  async function authenticateWithPi() {
+    try {
+      const auth = await Pi.authenticate(['username', 'payments'], { onIncompletePending: true });
+      
+      if (auth && auth.accessToken) {
+        const validation = await validatePiToken(auth.accessToken);
+        
+        if (validation.valid && validation.user) {
+          piAccessToken = auth.accessToken;
+          piUser = validation.user;
+          const username = validation.user.username || 'Pi User';
+          
+          saveSession(username, auth.accessToken);
+          updateAuthUI(username);
+          await checkIncompletePayments();
+        }
+      }
+    } catch (error) {
+      console.error('Authentication error:', error);
+    }
+  }
+  
+  async function signOut() {
+    clearSession();
+    isProUnlocked = false;
+    localStorage.removeItem('pi_pro_unlocked');
+    updateProUI();
+  }
+  
+  // Event listeners
+  document.getElementById('piSignInBtn').addEventListener('click', authenticateWithPi);
+  document.getElementById('piSignOutBtn').addEventListener('click', signOut);
+  document.getElementById('buyProBtn').addEventListener('click', initiatePurchase);
+  
+  // Initialize
+  updateProUI();
+  window.addEventListener('load', async () => {
+    await initPiAndAuthenticate();
+  });
+  
+  // ======================= ALARM, SPEED TRACKER, TIMER, STOPWATCH =======================
+  let alarmRepeatType = "once";
+  let selectedWeekDays = [];
+  let currentHour24 = 7, currentMinute = 30;
+  let nextAlarmTimestamp = null;
+  let isRinging = false;
+  let currentSteps = 0;
+  let currentSpeedKmh = 0;
+  const REQUIRED_STEPS = 30;
+  const REQUIRED_SPEED = 8.0;
+  
+  let beepInterval = null;
+  let audioCtx = null;
+  
+  let lastAccel = { x: 0, y: 0, z: 0 };
+  let lastTimestamp = 0;
+  let speedSmoothing = 0;
+  
+  // DOM elements (existing code continues here...)
+  const hourInput = document.getElementById('hourInput');
+  const minuteInput = document.getElementById('minuteInput');
+  const amBtn = document.getElementById('amBtn');
+  const pmBtn = document.getElementById('pmBtn');
+  const repeatOnceBtn = document.getElementById('repeatOnceBtn');
+  const repeatDailyBtn = document.getElementById('repeatDailyBtn');
+  const repeatWeeklyBtn = document.getElementById('repeatWeeklyBtn');
+  const weeklyContainer = document.getElementById('weeklyDaysContainer');
+  const dayBtns = document.querySelectorAll('.day-btn');
+  const setAlarmBtn = document.getElementById('setAlarmBtn');
+  const nextAlarmSpan = document.getElementById('nextAlarmDisplay');
+  const ringingDiv = document.getElementById('ringingSection');
+  const stepSpan = document.getElementById('currentStepCount');
+  const ringingSpeedSpan = document.getElementById('ringingSpeed');
+  const simulateBtn = document.getElementById('simulateStepBtn');
+  const dismissBtn = document.getElementById('forceDismissBtn');
+  const lockMsg = document.getElementById('lockMessage');
+  const forceClearBtn = document.getElementById('cancelAlarmResetBtn');
+  const liveClockSpan = document.getElementById('liveClock');
+  const currentSpeedSpan = document.getElementById('currentSpeed');
+  const speedProgress = document.getElementById('speedProgress');
+  const sensorStatusSpan = document.getElementById('sensorStatus');
+  const speedStatusMsg = document.getElementById('speedStatusMsg');
+  
+  let currentAmPm = 'AM';
+  function setAmPm(ampm) {
+    currentAmPm = ampm;
+    if(ampm==='AM'){ amBtn.classList.add('active-ampm'); pmBtn.classList.remove('active-ampm'); }
+    else { pmBtn.classList.add('active-ampm'); amBtn.classList.remove('active-ampm'); }
+  }
+  amBtn.onclick = () => setAmPm('AM');
+  pmBtn.onclick = () => setAmPm('PM');
+  
+  function get24Hour() {
+    let h12 = parseInt(hourInput.value) || 7;
+    if(h12<1) h12=1; if(h12>12) h12=12;
+    let h = h12 % 12;
+    if(currentAmPm==='PM') h+=12;
+    return h;
+  }
+  function updateTime() { currentHour24 = get24Hour(); currentMinute = parseInt(minuteInput.value)||0; if(currentMinute<0) currentMinute=0; if(currentMinute>59) currentMinute=59; }
+  
+  function setRepeatType(t) {
+    alarmRepeatType = t;
+    repeatOnceBtn.classList.remove('active-repeat');
+    repeatDailyBtn.classList.remove('active-repeat');
+    repeatWeeklyBtn.classList.remove('active-repeat');
+    if(t==='once') repeatOnceBtn.classList.add('active-repeat');
+    if(t==='daily') repeatDailyBtn.classList.add('active-repeat');
+    if(t==='weekly') repeatWeeklyBtn.classList.add('active-repeat');
+    weeklyContainer.style.display = t==='weekly' ? 'block' : 'none';
+  }
+  repeatOnceBtn.onclick = () => setRepeatType('once');
+  repeatDailyBtn.onclick = () => setRepeatType('daily');
+  repeatWeeklyBtn.onclick = () => setRepeatType('weekly');
+  
+  dayBtns.forEach(btn => {
+    btn.onclick = () => {
+      let day = parseInt(btn.getAttribute('data-day'));
+      if(selectedWeekDays.includes(day)) { selectedWeekDays = selectedWeekDays.filter(d=>d!==day); btn.classList.remove('selected'); }
+      else { selectedWeekDays.push(day); btn.classList.add('selected'); }
+    };
+  });
+  
+  function calcNextAlarm() {
+    updateTime();
+    const now = new Date();
+    let candidate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), currentHour24, currentMinute, 0);
+    if(alarmRepeatType === 'once') {
+      if(candidate <= now) candidate.setDate(candidate.getDate()+1);
+      return candidate.getTime();
+    } else if(alarmRepeatType === 'daily') {
+      if(candidate <= now) candidate.setDate(candidate.getDate()+1);
+      return candidate.getTime();
+    } else if(alarmRepeatType === 'weekly') {
+      if(selectedWeekDays.length===0) return null;
+      let currentDay = now.getDay();
+      for(let i=0; i<=7; i++) {
+        let checkDay = (currentDay + i) % 7;
+        if(selectedWeekDays.includes(checkDay)) {
+          let target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, currentHour24, currentMinute, 0);
+          if(target <= now) target.setDate(target.getDate()+7);
+          return target.getTime();
+        }
+      }
+      return null;
+    }
+    return null;
+  }
+  
+  function scheduleNext() {
+    let next = calcNextAlarm();
+    nextAlarmTimestamp = next;
+    if(next) {
+      let d = new Date(next);
+      nextAlarmSpan.innerText = `${d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} ${d.toDateString()===new Date().toDateString()?'today':d.toLocaleDateString()}`;
+    } else nextAlarmSpan.innerText = '— not set —';
+    saveState();
+  }
+  
+  function setAlarmFunc() {
+    if(isRinging) stopRinging();
+    scheduleNext();
+    lockMsg.innerText = '✅ Alarm set!';
+    setTimeout(()=>{ if(lockMsg.innerText==='✅ Alarm set!') lockMsg.innerText=''; },1500);
+  }
+  
+  function isUnlockConditionMet() {
+    return (currentSteps >= REQUIRED_STEPS) || (currentSpeedKmh >= REQUIRED_SPEED);
+  }
+  
+  function addStep() {
+    if(!isRinging) return;
+    if(currentSteps < REQUIRED_STEPS) {
+      currentSteps++;
+      stepSpan.innerText = currentSteps;
+      updateMotionUI();
+      if(isUnlockConditionMet()) dismissByMotion();
+      saveState();
+    }
+  }
+  
+  function updateMotionUI() {
+    if(!isRinging) return;
+    let unlocked = isUnlockConditionMet();
+    if(unlocked) {
+      dismissBtn.disabled = false;
+      dismissBtn.classList.add('unlocked');
+      dismissBtn.innerText = '✅ STOP ALARM (UNLOCKED)';
+      lockMsg.innerText = '🎉 Speed or steps reached! Tap to stop.';
+    } else {
+      dismissBtn.disabled = true;
+      dismissBtn.classList.remove('unlocked');
+      let stepsLeft = REQUIRED_STEPS - currentSteps;
+      let speedLeft = (REQUIRED_SPEED - currentSpeedKmh).toFixed(1);
+      dismissBtn.innerText = `🔒 LOCKED (${stepsLeft} steps or ${speedLeft} km/h more)`;
+      lockMsg.innerText = `🏃 Run faster! Need ${stepsLeft} steps OR ${speedLeft} km/h`;
+    }
+  }
+  
+  function dismissByMotion() {
+    if(isRinging && isUnlockConditionMet()) {
+      stopRinging();
+      lockMsg.innerText = '✅ Alarm stopped! You ran fast enough!';
+      setTimeout(()=>{ if(lockMsg.innerText.includes('stopped')) lockMsg.innerText=''; },2000);
+      saveState();
+    }
+  }
+  
+  function startRinging() {
+    if(isRinging) return;
+    isRinging = true;
+    currentSteps = 0;
+    currentSpeedKmh = 0;
+    ringingDiv.style.display = 'block';
+    stepSpan.innerText = '0';
+    if(ringingSpeedSpan) ringingSpeedSpan.innerText = '0.00';
+    updateMotionUI();
+    startBeep();
+    if(navigator.vibrate) navigator.vibrate([200,100,200]);
+    saveState();
+  }
+  
+  function stopRinging() {
+    if(beepInterval) clearInterval(beepInterval);
+    isRinging = false;
+    ringingDiv.style.display = 'none';
+    if(alarmRepeatType !== 'once') scheduleNext();
+    else { nextAlarmTimestamp = null; nextAlarmSpan.innerText = '— not set —'; }
+    saveState();
+  }
+  
+  function forceClear() {
+    if(isRinging && !isUnlockConditionMet()) {
+      lockMsg.innerText = "❌ Run faster or complete steps to dismiss!";
+      setTimeout(()=>{ if(lockMsg.innerText==="❌ Run faster or complete steps to dismiss!") lockMsg.innerText=''; },1500);
+      return;
+    }
+    if(beepInterval) clearInterval(beepInterval);
+    isRinging = false;
+    ringingDiv.style.display = 'none';
+    nextAlarmTimestamp = null;
+    nextAlarmSpan.innerText = '— not set —';
+    saveState();
+  }
+  
+  function checkTrigger() {
+    if(!nextAlarmTimestamp || isRinging) return;
+    if(Date.now() >= nextAlarmTimestamp) startRinging();
+  }
+  
+  function playBeep() {
+    if(!isRinging) return;
+    try {
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.value = 0.2;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
+      osc.stop(audioCtx.currentTime + 0.5);
+    } catch(e) {}
+  }
+  function startBeep() { if(beepInterval) clearInterval(beepInterval); playBeep(); beepInterval = setInterval(()=>{ if(isRinging) playBeep(); },1600); }
+  
+  function initSpeedTracker() {
+    if(window.DeviceMotionEvent) {
+      const motionHandler = (event) => {
+        const acc = event.acceleration;
+        if(!acc) return;
+        const now = Date.now();
+        if(lastTimestamp === 0) {
+          lastTimestamp = now;
+          lastAccel = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 };
+          return;
+        }
+        const dt = (now - lastTimestamp) / 1000;
+        if(dt > 0.05 && dt < 0.5) {
+          let deltaVx = ((acc.x || 0) - lastAccel.x) * dt;
+          let deltaVy = ((acc.y || 0) - lastAccel.y) * dt;
+          let deltaVz = ((acc.z || 0) - lastAccel.z) * dt;
+          let speedChange = Math.sqrt(deltaVx*deltaVx + deltaVy*deltaVy + deltaVz*deltaVz) * 3.6;
+          speedSmoothing = speedSmoothing * 0.7 + speedChange * 0.3;
+          let estimatedSpeed = Math.min(25, Math.max(0, speedSmoothing * 8));
+          currentSpeedKmh = estimatedSpeed;
+          
+          if(currentSpeedSpan) currentSpeedSpan.innerText = currentSpeedKmh.toFixed(2);
+          if(speedProgress) {
+            let percent = Math.min(100, (currentSpeedKmh / REQUIRED_SPEED) * 100);
+            speedProgress.style.width = percent + '%';
+          }
+          if(sensorStatusSpan) sensorStatusSpan.innerText = '📡 Active';
+          if(speedStatusMsg) {
+            if(currentSpeedKmh >= REQUIRED_SPEED) speedStatusMsg.innerHTML = '🔥 Great speed! Premium threshold reached 🔥';
+            else speedStatusMsg.innerHTML = `🏃 Run faster! ${(REQUIRED_SPEED - currentSpeedKmh).toFixed(1)} km/h to target`;
+          }
+          
+          if(isRinging && ringingSpeedSpan) {
+            ringingSpeedSpan.innerText = currentSpeedKmh.toFixed(2);
+            updateMotionUI();
+            if(isUnlockConditionMet()) dismissByMotion();
+          }
+        }
+        lastTimestamp = now;
+        lastAccel = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 };
+      };
+      
+      if(typeof DeviceMotionEvent.requestPermission === 'function') {
+        document.body.addEventListener('click', () => {
+          DeviceMotionEvent.requestPermission().then(state => {
+            if(state === 'granted') {
+              window.addEventListener('devicemotion', motionHandler);
+              sensorStatusSpan.innerText = '✅ Ready';
+            }
+          }).catch(e=>console.log);
+        }, { once: true });
+      } else {
+        window.addEventListener('devicemotion', motionHandler);
+        sensorStatusSpan.innerText = '✅ Active';
+      }
+    } else {
+      sensorStatusSpan.innerText = '⚠️ No sensor';
+      speedStatusMsg.innerText = 'Simulate steps to test';
+    }
+  }
+  
+  function simulateStepWithSpeed() {
+    if(!isRinging) {
+      lockMsg.innerText = "No alarm ringing";
+      setTimeout(()=>{ if(lockMsg.innerText==="No alarm ringing") lockMsg.innerText=''; },1000);
+      return;
+    }
+    addStep();
+    if(currentSpeedKmh < REQUIRED_SPEED) {
+      currentSpeedKmh = Math.min(REQUIRED_SPEED, currentSpeedKmh + 2.5);
+      if(currentSpeedSpan) currentSpeedSpan.innerText = currentSpeedKmh.toFixed(2);
+      if(ringingSpeedSpan) ringingSpeedSpan.innerText = currentSpeedKmh.toFixed(2);
+      updateMotionUI();
+      if(isUnlockConditionMet()) dismissByMotion();
+    }
+  }
+  
+  let timerSecs=0, timerActive=false, timerInt=null;
+  const tDisplay=document.getElementById('timerDisplay');
+  function updateTimerDisplay() {
+    let hrs=Math.floor(timerSecs/3600), mins=Math.floor((timerSecs%3600)/60), secs=timerSecs%60;
+    tDisplay.innerText=`${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    if(timerSecs===0 && timerActive) { timerActive=false; if(timerInt)clearInterval(timerInt); alert("Timer finished!"); }
+  }
+  function startTimer() {
+    if(timerActive) return;
+    if(timerSecs<=0){
+      let h=parseInt(document.getElementById('timerHours').value)||0;
+      let m=parseInt(document.getElementById('timerMins').value)||0;
+      let s=parseInt(document.getElementById('timerSecs').value)||0;
+      timerSecs = h*3600+m*60+s;
+      if(timerSecs<=0) return;
+    }
+    timerActive=true;
+    if(timerInt)clearInterval(timerInt);
+    timerInt=setInterval(()=>{ if(timerActive && timerSecs>0){ timerSecs--; updateTimerDisplay(); } else if(timerSecs===0){ timerActive=false; clearInterval(timerInt); alert("Time's up!"); } },1000);
+  }
+  function pauseTimer() { timerActive=false; if(timerInt)clearInterval(timerInt); }
+  function resetTimer() { timerActive=false; if(timerInt)clearInterval(timerInt); timerSecs=0; updateTimerDisplay(); }
+  document.getElementById('startTimerBtn').onclick=startTimer;
+  document.getElementById('pauseTimerBtn').onclick=pauseTimer;
+  document.getElementById('resetTimerBtn').onclick=resetTimer;
+  updateTimerDisplay();
+  
+  let swMs=0, swRun=false, swIntv=null;
+  const swDisp=document.getElementById('stopwatchDisplay');
+  const lapList=document.getElementById('lapList');
+  function formatSw(ms){ let ts=Math.floor(ms/1000); let hrs=Math.floor(ts/3600), mins=Math.floor((ts%3600)/60), secs=ts%60, cent=Math.floor((ms%1000)/10); return `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}.${cent.toString().padStart(2,'0')}`; }
+  function updateSw(){ swDisp.innerText=formatSw(swMs); }
+  function swTick(){ if(swRun){ swMs+=10; updateSw(); } }
+  function startSw(){ if(!swRun){ swRun=true; if(swIntv)clearInterval(swIntv); swIntv=setInterval(swTick,10); } }
+  function pauseSw(){ swRun=false; if(swIntv)clearInterval(swIntv); swIntv=null; }
+  function resetSw(){ swRun=false; if(swIntv)clearInterval(swIntv); swMs=0; updateSw(); lapList.innerHTML=''; }
+  function addLap(){ let lapDiv=document.createElement('div'); lapDiv.style.background='#f1f5f9'; lapDiv.style.margin='3px'; lapDiv.style.padding='3px 6px'; lapDiv.style.borderRadius='12px'; lapDiv.innerText=`⏱️ Lap ${lapList.children.length+1}: ${formatSw(swMs)}`; lapList.appendChild(lapDiv); lapList.scrollTop=lapList.scrollHeight; }
+  document.getElementById('swStartBtn').onclick=startSw;
+  document.getElementById('swPauseBtn').onclick=pauseSw;
+  document.getElementById('swResetBtn').onclick=resetSw;
+  document.getElementById('swLapBtn').onclick=addLap;
+  updateSw();
+  
+  function updateClock() { liveClockSpan.innerText = new Date().toLocaleTimeString('en-US', { hour12: false }); }
+  setInterval(()=>{ updateClock(); checkTrigger(); }, 500);
+  
+  setAlarmBtn.onclick = setAlarmFunc;
+  simulateBtn.onclick = simulateStepWithSpeed;
+  dismissBtn.onclick = () => { if(isRinging && isUnlockConditionMet()) dismissByMotion(); else if(isRinging) lockMsg.innerText=`Need more steps or speed`; };
+  forceClearBtn.onclick = forceClear;
+  
+  function warmAudio() { if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }
+  document.addEventListener('click', warmAudio);
+  
+  initSpeedTracker();
+  
+  function saveState() {
+    localStorage.setItem('alm_next', nextAlarmTimestamp||'');
+    localStorage.setItem('alm_repeat', alarmRepeatType);
+    localStorage.setItem('alm_hour', currentHour24);
+    localStorage.setItem('alm_min', currentMinute);
+    localStorage.setItem('alm_ringing', isRinging?'1':'0');
+    localStorage.setItem('alm_steps', currentSteps);
+    localStorage.setItem('alm_weekly', JSON.stringify(selectedWeekDays));
+    localStorage.setItem('alm_ampm', currentAmPm);
+  }
+  function loadState() {
+    let ts = localStorage.getItem('alm_next');
+    if(ts && ts!=='') nextAlarmTimestamp = parseInt(ts);
+    let rep = localStorage.getItem('alm_repeat');
+    if(rep) setRepeatType(rep);
+    let h = localStorage.getItem('alm_hour'); if(h) currentHour24 = parseInt(h);
+    let m = localStorage.getItem('alm_min'); if(m) currentMinute = parseInt(m);
+    let ring = localStorage.getItem('alm_ringing');
+    if(ring==='1') {
+      isRinging = true;
+      currentSteps = parseInt(localStorage.getItem('alm_steps')||'0');
+      if(isUnlockConditionMet()) dismissByMotion();
+      else startRinging();
+    }
+    let wk = localStorage.getItem('alm_weekly');
+    if(wk) { selectedWeekDays = JSON.parse(wk); dayBtns.forEach(btn=>{ let d=parseInt(btn.getAttribute('data-day')); if(selectedWeekDays.includes(d)) btn.classList.add('selected'); else btn.classList.remove('selected'); }); }
+    let ap = localStorage.getItem('alm_ampm'); if(ap) setAmPm(ap);
+    scheduleNext();
+  }
+  loadState();
+  
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.onclick = () => {
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active-panel'));
+      document.getElementById(`${btn.getAttribute('data-tab')}Panel`).classList.add('active-panel');
+    };
+  });
+</script>
+</body>
+</html>
     * {
       margin: 0;
       padding: 0;
