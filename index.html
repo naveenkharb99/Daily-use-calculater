@@ -84,6 +84,11 @@
       font-size: 0.9rem;
     }
     
+    .buy-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
     .pro-badge {
       background: #fbbf24;
       color: #1e293b;
@@ -91,6 +96,38 @@
       border-radius: 2rem;
       font-size: 0.7rem;
       font-weight: bold;
+      display: inline-block;
+    }
+    
+    /* 🔒 BLUR EFFECT - अगर PRO नहीं है तो blur होगा */
+    .blur-section {
+      filter: blur(5px);
+      pointer-events: none;
+      user-select: none;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    
+    .blur-section::after {
+      content: "🔒 PRO FEATURE - PAY TO UNLOCK 🔒";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: #facc15;
+      padding: 8px 16px;
+      border-radius: 2rem;
+      font-size: 12px;
+      font-weight: bold;
+      white-space: nowrap;
+      z-index: 10;
+      pointer-events: none;
+    }
+    
+    .unlocked-section {
+      filter: none;
+      pointer-events: auto;
     }
     
     /* Timer & Alarm Styles */
@@ -231,6 +268,29 @@
       color: #64748b;
       margin-top: 0.8rem;
     }
+    
+    .status-msg {
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 0.5rem;
+      padding: 0.3rem;
+      border-radius: 1rem;
+    }
+    
+    .status-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .status-info {
+      background: #dbeafe;
+      color: #1e40af;
+    }
   </style>
 </head>
 <body>
@@ -272,22 +332,29 @@
     <button class="tab-btn" data-tab="stopwatch">⚡ STOPW</button>
   </div>
   
-  <!-- Alarm Panel -->
+  <!-- 🔒 Alarm Panel - BLUR if not Pro -->
   <div id="alarmPanel" class="panel active-panel">
-    <div class="alarm-card">
-      <div class="time-row">
-        <div class="time-box">
-          <input type="number" id="hour" min="1" max="12" value="7">
-          <span>:</span>
-          <input type="number" id="minute" min="0" max="59" value="30">
+    <div id="alarmContent" class="blur-section">
+      <div class="alarm-card">
+        <div class="time-row">
+          <div class="time-box">
+            <input type="number" id="hour" min="1" max="12" value="7">
+            <span>:</span>
+            <input type="number" id="minute" min="0" max="59" value="30">
+          </div>
+          <div class="time-box">
+            <button id="amBtn" style="background:#10b981; color:white;">AM</button>
+            <button id="pmBtn">PM</button>
+          </div>
         </div>
-        <div class="time-box">
-          <button id="amBtn" style="background:#10b981; color:white;">AM</button>
-          <button id="pmBtn">PM</button>
-        </div>
+        <button class="set-btn" id="setAlarmBtn">⏰ SET ALARM</button>
+        <div id="alarmStatus" style="margin-top:0.5rem; text-align:center; font-size:0.8rem;"></div>
       </div>
-      <button class="set-btn" id="setAlarmBtn">⏰ SET ALARM</button>
-      <div id="alarmStatus" style="margin-top:0.5rem; text-align:center; font-size:0.8rem;"></div>
+      
+      <div class="speed-tracker" style="background:#f1f5f9; border-radius:1rem; padding:0.8rem; margin-top:0.5rem;">
+        <h4 style="text-align:center;">🏆 SPEED TRACKER</h4>
+        <div style="font-size:1.5rem; text-align:center; font-weight:bold;" id="speedValue">0.00 km/h</div>
+      </div>
     </div>
     
     <div id="ringingSection" style="display:none;">
@@ -295,7 +362,7 @@
         <h3>🔊 ALARM RINGING!</h3>
         <p>🏃‍♂️ Run 30 steps or reach 8 km/h to stop</p>
         <div id="stepCount">Steps: 0 / 30</div>
-        <div id="speedDisplay">Speed: 0 km/h</div>
+        <div id="ringingSpeed">Speed: 0 km/h</div>
         <button id="simulateStepBtn" style="background:#f59e0b; margin:0.5rem 0;">🏃 Simulate Step</button>
         <button id="stopAlarmBtn" class="dismiss-btn" disabled>🔴 STOP (LOCKED)</button>
       </div>
@@ -330,31 +397,39 @@
 </div>
 
 <script>
-  // ==================== PI NETWORK AUTHENTICATION WITH PAYMENTS SCOPE ====================
+  // ==================== PI NETWORK AUTHENTICATION ====================
   let piUser = null;
   let piAccessToken = null;
   let hasPaymentsScope = false;
   let isProUnlocked = localStorage.getItem('pro_unlocked') === 'true';
   
-  // Backend URL (change to your server URL)
   const BACKEND_URL = 'http://localhost:3000';
   
-  // Update Pro UI
+  // Update Pro UI and Blur Effect
   function updateProUI() {
     const proBadge = document.getElementById('proBadge');
     const buyBtn = document.getElementById('buyProBtn');
+    const alarmContent = document.getElementById('alarmContent');
     
     if (isProUnlocked) {
       proBadge.innerHTML = '✨ PRO UNLOCKED ✨';
       proBadge.style.background = '#10b981';
       buyBtn.disabled = true;
       buyBtn.style.opacity = '0.5';
-      document.getElementById('authStatus').innerHTML = '✅ Pro Unlocked! Thanks for purchase';
+      buyBtn.innerText = '✅ PRO ACTIVE';
+      // 🔓 REMOVE BLUR
+      alarmContent.classList.remove('blur-section');
+      alarmContent.classList.add('unlocked-section');
+      document.getElementById('authStatus').innerHTML = '✅ Pro Unlocked! Full access';
     } else {
       proBadge.innerHTML = '🔒 LOCKED';
       proBadge.style.background = '#fbbf24';
       buyBtn.disabled = false;
       buyBtn.style.opacity = '1';
+      buyBtn.innerText = '💎 Buy Now - 1 Pi';
+      // 🔒 APPLY BLUR
+      alarmContent.classList.add('blur-section');
+      alarmContent.classList.remove('unlocked-section');
     }
   }
   
@@ -372,7 +447,6 @@
     }
   }
   
-  // Save session
   function saveSession(username, token, hasPayments) {
     localStorage.setItem('pi_username', username);
     localStorage.setItem('pi_token', token);
@@ -380,7 +454,6 @@
     localStorage.setItem('pi_session_time', Date.now().toString());
   }
   
-  // Clear session
   function clearSession() {
     localStorage.removeItem('pi_username');
     localStorage.removeItem('pi_token');
@@ -395,7 +468,6 @@
     document.getElementById('signOutBtn').style.display = 'none';
   }
   
-  // Update Auth UI
   function updateAuthUI(username, hasPayments) {
     document.getElementById('usernameDisplay').innerHTML = `👤 ${username}`;
     if (hasPayments) {
@@ -412,7 +484,7 @@
     try {
       document.getElementById('authStatus').innerHTML = '🔄 Requesting payments access...';
       
-      // ⭐⭐⭐ IMPORTANT: यहाँ 'payments' scope जोड़ा गया है ⭐⭐⭐
+      // ⭐⭐⭐ 'payments' scope added here ⭐⭐⭐
       const auth = await Pi.authenticate(['username', 'payments'], { 
         onIncompletePending: true 
       });
@@ -423,28 +495,22 @@
         if (validation.valid && validation.user) {
           piAccessToken = auth.accessToken;
           piUser = validation.user;
-          hasPaymentsScope = true; // Payments scope granted
+          hasPaymentsScope = true;
           const username = validation.user.username || 'Pi User';
           
           saveSession(username, auth.accessToken, true);
           updateAuthUI(username, true);
           
-          document.getElementById('paymentStatus').innerHTML = '✅ Ready for payments!';
-          setTimeout(() => {
-            document.getElementById('paymentStatus').innerHTML = '';
-          }, 2000);
+          showStatus('✅ Ready for payments!', 'success');
         }
       }
     } catch (error) {
       console.error('Auth error:', error);
       document.getElementById('authStatus').innerHTML = '❌ Authentication failed';
-      if (error.message && error.message.includes('payments')) {
-        document.getElementById('paymentStatus').innerHTML = '⚠️ Please approve payments permission';
-      }
+      showStatus('⚠️ Please approve payments permission', 'error');
     }
   }
   
-  // Initialize Pi and check session
   async function initPi() {
     try {
       if (typeof Pi === 'undefined') {
@@ -473,7 +539,6 @@
         }
       }
       
-      // Auto-authenticate
       await authenticateWithPi();
       
     } catch (error) {
@@ -481,77 +546,138 @@
     }
   }
   
-  // Sign out
   async function signOut() {
     clearSession();
     isProUnlocked = false;
     localStorage.removeItem('pro_unlocked');
     updateProUI();
+    showStatus('Signed out successfully', 'info');
   }
   
-  // ⭐ PAYMENT FUNCTION
+  function showStatus(message, type) {
+    const statusDiv = document.getElementById('paymentStatus');
+    statusDiv.innerHTML = message;
+    statusDiv.className = `status-msg status-${type}`;
+    setTimeout(() => {
+      statusDiv.innerHTML = '';
+      statusDiv.className = '';
+    }, 3000);
+  }
+  
+  // ⭐⭐⭐ COMPLETE PAYMENT FUNCTION WITH ALL CALLBACKS ⭐⭐⭐
   async function buyPro() {
     if (!piAccessToken) {
-      document.getElementById('paymentStatus').innerHTML = '❌ Please sign in first';
+      showStatus('❌ Please sign in first', 'error');
       return;
     }
     
     if (!hasPaymentsScope) {
-      document.getElementById('paymentStatus').innerHTML = '❌ Missing payments scope. Please sign out and sign in again.';
+      showStatus('❌ Missing payments scope. Please sign out and sign in again.', 'error');
       return;
     }
     
     if (isProUnlocked) {
-      document.getElementById('paymentStatus').innerHTML = '✅ You already have Pro!';
+      showStatus('✅ You already have Pro!', 'success');
       return;
     }
     
-    document.getElementById('paymentStatus').innerHTML = '🔄 Creating payment...';
+    showStatus('🔄 Creating payment...', 'info');
     
     try {
       const paymentData = {
         amount: 1,
         memo: "Unlock Pro Features - SpeedRun Alarm",
-        metadata: { productId: "pro_unlock_v1", feature: "premium" }
+        metadata: { productId: "pro_unlock_v1", feature: "premium_alarm" }
       };
       
+      // ⭐⭐⭐ ALL 4 CALLBACK FUNCTIONS INCLUDED ⭐⭐⭐
       const callbacks = {
+        // Callback 1: जब payment server पर approve हो
         onReadyForServerApproval: async (paymentId) => {
-          document.getElementById('paymentStatus').innerHTML = '📡 Approving payment...';
-          const response = await fetch(`${BACKEND_URL}/api/payments/approve`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId })
-          });
-          if (!response.ok) throw new Error('Approval failed');
-        },
-        
-        onReadyForServerCompletion: async (paymentId, txid) => {
-          document.getElementById('paymentStatus').innerHTML = '⛓️ Completing transaction...';
-          const response = await fetch(`${BACKEND_URL}/api/payments/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paymentId, txid })
-          });
+          console.log('onReadyForServerApproval called with:', paymentId);
+          showStatus('📡 Approving payment on server...', 'info');
           
-          if (response.ok) {
-            isProUnlocked = true;
-            localStorage.setItem('pro_unlocked', 'true');
-            updateProUI();
-            document.getElementById('paymentStatus').innerHTML = '🎉 Pro Unlocked! Thank you!';
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/payments/approve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId })
+            });
+            
+            if (!response.ok) throw new Error('Server approval failed');
+            showStatus('✅ Payment approved! Waiting for blockchain...', 'success');
+          } catch (error) {
+            console.error('Approval error:', error);
+            showStatus('❌ Approval failed', 'error');
           }
         },
         
+        // Callback 2: जब payment blockchain पर complete हो
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          console.log('onReadyForServerCompletion called with:', paymentId, txid);
+          showStatus('⛓️ Completing transaction on blockchain...', 'info');
+          
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/payments/complete`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId, txid })
+            });
+            
+            if (response.ok) {
+              isProUnlocked = true;
+              localStorage.setItem('pro_unlocked', 'true');
+              updateProUI();
+              showStatus('🎉 Pro Unlocked! Thank you for your purchase! 🎉', 'success');
+            } else {
+              throw new Error('Completion failed');
+            }
+          } catch (error) {
+            console.error('Completion error:', error);
+            showStatus('❌ Completion failed', 'error');
+          }
+        },
+        
+        // Callback 3: जब पहले से incomplete payment हो
         onIncompletePaymentFound: async (paymentId) => {
-          document.getElementById('paymentStatus').innerHTML = '🔄 Resuming previous payment...';
+          console.log('onIncompletePaymentFound called with:', paymentId);
+          showStatus('🔄 Found incomplete payment, resuming...', 'info');
+          
+          // Try to complete the incomplete payment
+          try {
+            const response = await fetch(`${BACKEND_URL}/api/payments/incomplete`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId })
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.completed) {
+                isProUnlocked = true;
+                localStorage.setItem('pro_unlocked', 'true');
+                updateProUI();
+                showStatus('🎉 Previous payment completed! Pro Unlocked!', 'success');
+              }
+            }
+          } catch (error) {
+            console.error('Incomplete payment error:', error);
+          }
+        },
+        
+        // Callback 4: जब payment cancelled हो
+        onCancelled: async () => {
+          console.log('onCancelled called');
+          showStatus('❌ Payment was cancelled', 'error');
         }
       };
       
+      // Create payment with all callbacks
       await Pi.createPayment(paymentData, callbacks);
       
     } catch (error) {
       console.error('Payment error:', error);
-      document.getElementById('paymentStatus').innerHTML = `❌ Payment failed: ${error.message}`;
+      showStatus(`❌ Payment failed: ${error.message}`, 'error');
     }
   }
   
@@ -562,6 +688,8 @@
   let currentSpeed = 0;
   let beepInterval = null;
   let audioCtx = null;
+  let lastAccel = { x: 0, y: 0, z: 0 };
+  let lastTimestamp = 0;
   
   const hourInput = document.getElementById('hour');
   const minuteInput = document.getElementById('minute');
@@ -587,12 +715,18 @@
   
   function get24Hour() {
     let hour = parseInt(hourInput.value);
+    if (isNaN(hour)) hour = 7;
     if (isAM && hour === 12) hour = 0;
     if (!isAM && hour !== 12) hour += 12;
     return hour;
   }
   
   function setAlarm() {
+    if (!isProUnlocked) {
+      showStatus('🔒 Please buy Pro to use alarm feature!', 'error');
+      return;
+    }
+    
     const hour24 = get24Hour();
     const minute = parseInt(minuteInput.value);
     const now = new Date();
@@ -603,16 +737,15 @@
   }
   
   function startRinging() {
-    if (isRinging) return;
+    if (isRinging || !isProUnlocked) return;
     isRinging = true;
     currentSteps = 0;
     currentSpeed = 0;
     document.getElementById('ringingSection').style.display = 'block';
     document.getElementById('stepCount').innerHTML = `Steps: 0 / 30`;
-    document.getElementById('speedDisplay').innerHTML = `Speed: 0 km/h`;
+    document.getElementById('ringingSpeed').innerHTML = `Speed: 0 km/h`;
     document.getElementById('stopAlarmBtn').disabled = true;
     
-    // Beep sound
     if (beepInterval) clearInterval(beepInterval);
     beepInterval = setInterval(() => {
       if (isRinging) playBeep();
@@ -649,15 +782,63 @@
       document.getElementById('stepCount').innerHTML = `Steps: ${currentSteps} / 30`;
       if (currentSteps >= 30) {
         stopRinging();
-        alert('🎉 You ran enough! Alarm stopped!');
+        showStatus('🎉 You ran enough! Alarm stopped!', 'success');
       }
     }
   }
   
   function checkAlarm() {
-    if (!alarmTime || isRinging) return;
+    if (!alarmTime || isRinging || !isProUnlocked) return;
     if (Date.now() >= alarmTime) {
       startRinging();
+    }
+  }
+  
+  // Speed tracker using device motion
+  function initSpeedTracker() {
+    if (window.DeviceMotionEvent) {
+      const handler = (e) => {
+        const acc = e.acceleration;
+        if (!acc || !isProUnlocked) return;
+        
+        const now = Date.now();
+        if (lastTimestamp === 0) {
+          lastTimestamp = now;
+          lastAccel = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 };
+          return;
+        }
+        
+        const dt = (now - lastTimestamp) / 1000;
+        if (dt > 0.05 && dt < 0.5) {
+          let deltaVx = ((acc.x || 0) - lastAccel.x) * dt;
+          let deltaVy = ((acc.y || 0) - lastAccel.y) * dt;
+          let deltaVz = ((acc.z || 0) - lastAccel.z) * dt;
+          let speedChange = Math.sqrt(deltaVx*deltaVx + deltaVy*deltaVy + deltaVz*deltaVz) * 15;
+          currentSpeed = Math.min(25, Math.max(0, speedChange));
+          
+          document.getElementById('speedValue').innerHTML = `${currentSpeed.toFixed(2)} km/h`;
+          
+          if (isRinging) {
+            document.getElementById('ringingSpeed').innerHTML = `Speed: ${currentSpeed.toFixed(2)} km/h`;
+            if (currentSpeed >= 8) {
+              stopRinging();
+              showStatus('🎉 You reached 8 km/h! Alarm stopped!', 'success');
+            }
+          }
+        }
+        lastTimestamp = now;
+        lastAccel = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 };
+      };
+      
+      if (typeof DeviceMotionEvent.requestPermission === 'function') {
+        document.body.addEventListener('click', () => {
+          DeviceMotionEvent.requestPermission().then(state => {
+            if (state === 'granted') window.addEventListener('devicemotion', handler);
+          }).catch(e=>console.log);
+        }, { once: true });
+      } else {
+        window.addEventListener('devicemotion', handler);
+      }
     }
   }
   
@@ -673,7 +854,7 @@
   document.getElementById('startTimer').onclick = () => {
     if (timerActive) return;
     if (timerSeconds <= 0) {
-      timerSeconds = 60; // default 1 minute
+      timerSeconds = 60;
     }
     timerActive = true;
     timerInt = setInterval(() => {
@@ -748,6 +929,7 @@
   updateClock();
   setInterval(() => { updateClock(); checkAlarm(); }, 500);
   window.addEventListener('load', initPi);
+  initSpeedTracker();
 </script>
 </body>
 </html>
