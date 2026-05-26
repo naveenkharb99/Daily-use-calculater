@@ -34,6 +34,7 @@ app.post('/api/payments/approve', async (req, res) => {
     console.log(`✅ Payment ${paymentId} approved`);
     res.json(result);
   } catch (error) {
+    console.error('Approval error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -47,6 +48,7 @@ app.post('/api/payments/complete', async (req, res) => {
     console.log(`✅ Payment ${paymentId} completed with txid: ${txid}`);
     res.json(result);
   } catch (error) {
+    console.error('Completion error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -57,9 +59,10 @@ app.post('/api/payments/incomplete', async (req, res) => {
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ status: 'ok', timestamp: Date.now() });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`📡 Pi API Key configured: ${PI_API_KEY ? '✅ Yes' : '❌ No'}`);
 });
