@@ -13,13 +13,13 @@
     }
     
     body {
-      background: #f0fdf4;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-      padding: 12px;
+      padding: 16px;
     }
     
     .app-container {
@@ -27,10 +27,18 @@
       width: 100%;
       background: white;
       border-radius: 2rem;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      padding: 1.2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 1.5rem;
     }
     
+    h1 {
+      text-align: center;
+      color: #10b981;
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Pi Auth Section */
     .pi-section {
       background: linear-gradient(135deg, #1a472a, #0d2818);
       border-radius: 1.3rem;
@@ -62,6 +70,11 @@
       border-radius: 2rem;
       font-weight: bold;
       cursor: pointer;
+      transition: transform 0.1s;
+    }
+    
+    .pi-btn:active {
+      transform: scale(0.96);
     }
     
     .logout-btn {
@@ -107,14 +120,14 @@
     }
     
     .blur-section::after {
-      content: "🔒 BUY PRO TO UNLOCK 🔒";
+      content: "🔒 BUY PRO TO UNLOCK (1 Pi) 🔒";
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
       color: #facc15;
-      padding: 10px 20px;
+      padding: 12px 20px;
       border-radius: 2rem;
       font-size: 14px;
       font-weight: bold;
@@ -296,7 +309,7 @@
 </head>
 <body>
 <div class="app-container">
-  <h1 style="text-align:center; color:#10b981;">🏃‍♂️ SPEED RUN ALARM</h1>
+  <h1>🏃‍♂️ SPEED RUN ALARM</h1>
   
   <!-- Pi Section -->
   <div class="pi-section">
@@ -316,7 +329,7 @@
         <span>✨ PRO UNLOCK</span>
         <span class="pro-badge" id="proBadge">🔒 LOCKED</span>
       </div>
-      <button id="buyProBtn" class="pi-btn buy-btn" style="background:#10b981;">💎 Buy Now - 1 Pi</button>
+      <button id="buyProBtn" class="pi-btn buy-btn">💎 Buy Now - 1 Pi</button>
       <div id="paymentStatus" style="font-size:0.7rem; margin-top:0.5rem; text-align:center;"></div>
     </div>
   </div>
@@ -398,15 +411,13 @@
 </div>
 
 <script>
-  // ==================== PI NETWORK AUTHENTICATION ====================
-  let piUser = null;
+  // ==================== VARIABLES ====================
   let piAccessToken = null;
+  let piUser = null;
   let hasPaymentsScope = false;
   let isProUnlocked = localStorage.getItem('pro_unlocked') === 'true';
   
-  const BACKEND_URL = 'http://localhost:3000';
-  
-  // Update Pro UI and Blur Effect
+  // ==================== UPDATE PRO UI ====================
   function updateProUI() {
     const proBadge = document.getElementById('proBadge');
     const buyBtn = document.getElementById('buyProBtn');
@@ -420,7 +431,6 @@
       buyBtn.innerText = '✅ PRO ACTIVE';
       alarmContent.classList.remove('blur-section');
       alarmContent.classList.add('unlocked-section');
-      document.getElementById('authStatus').innerHTML = '✅ Pro Unlocked! Full access';
     } else {
       proBadge.innerHTML = '🔒 LOCKED';
       proBadge.style.background = '#fbbf24';
@@ -437,38 +447,43 @@
     statusDiv.innerHTML = message;
     statusDiv.className = `status-msg status-${type}`;
     setTimeout(() => {
-      statusDiv.innerHTML = '';
-      statusDiv.className = '';
+      if (document.getElementById('paymentStatus').innerHTML === message) {
+        statusDiv.innerHTML = '';
+        statusDiv.className = '';
+      }
     }, 4000);
   }
   
   // ==================== PI AUTHENTICATION WITH PAYMENTS SCOPE ====================
   async function authenticateWithPi() {
     try {
-      // Check if Pi SDK is available
       if (typeof Pi === 'undefined') {
-        showStatus('❌ Pi SDK not loaded. Please use Pi Browser.', 'error');
+        showStatus('❌ Please open this app in Pi Browser', 'error');
         return;
       }
       
-      document.getElementById('authStatus').innerHTML = '🔄 Initializing Pi SDK...';
+      showStatus('🔄 Initializing Pi SDK...', 'info');
+      document.getElementById('authStatus').innerHTML = '🔄 Initializing...';
       
       // Initialize Pi SDK
       await Pi.init({ version: '2.0', sandbox: true });
       
+      showStatus('🔄 Requesting permissions (username + payments)...', 'info');
       document.getElementById('authStatus').innerHTML = '🔄 Requesting payments access...';
       
-      // ⭐⭐⭐ CRITICAL: Request BOTH 'username' AND 'payments' scopes ⭐⭐⭐
-      const auth = await Pi.authenticate(['username', 'payments'], ...){ 
-        onIncompletePending: true 
+      // ⭐⭐⭐ IMPORTANT: Request BOTH scopes ⭐⭐⭐
+      const auth = await Pi.authenticate(['username', 'payments'], {
+        onIncompletePending: true
       });
+      
+      console.log('Auth response:', auth);
       
       if (auth && auth.accessToken) {
         piAccessToken = auth.accessToken;
         hasPaymentsScope = true;
         const username = auth.user?.username || 'Pi User';
         
-        // Save session
+        // Save to localStorage
         localStorage.setItem('pi_username', username);
         localStorage.setItem('pi_token', auth.accessToken);
         localStorage.setItem('pi_has_payments', 'true');
@@ -483,15 +498,17 @@
         document.getElementById('signOutBtn').style.display = 'inline-block';
         
         showStatus('✅ Successfully authenticated with payments scope!', 'success');
+      } else {
+        showStatus('❌ Authentication failed - no token received', 'error');
       }
     } catch (error) {
       console.error('Auth error:', error);
-      document.getElementById('authStatus').innerHTML = '❌ Authentication failed';
-      showStatus(`❌ Auth failed: ${error.message}`, 'error');
+      document.getElementById('authStatus').innerHTML = '❌ Auth failed';
+      showStatus(`❌ Error: ${error.message}`, 'error');
     }
   }
   
-  // Check existing session on load
+  // Check existing session
   async function checkExistingSession() {
     try {
       const storedUsername = localStorage.getItem('pi_username');
@@ -526,8 +543,8 @@
     localStorage.removeItem('pi_session_time');
     localStorage.removeItem('pro_unlocked');
     
-    piUser = null;
     piAccessToken = null;
+    piUser = null;
     hasPaymentsScope = false;
     isProUnlocked = false;
     
@@ -540,9 +557,9 @@
     showStatus('Signed out successfully', 'info');
   }
   
-  // ==================== PI PAYMENT WITH ALL CALLBACKS ====================
+  // ==================== PI PAYMENT (Mock - for testing without backend) ====================
   async function buyPro() {
-    // Check if authenticated with payments scope
+    // Check authentication
     if (!piAccessToken) {
       showStatus('❌ Please sign in with Pi Network first', 'error');
       return;
@@ -558,104 +575,55 @@
       return;
     }
     
-    showStatus('🔄 Creating payment...', 'info');
+    showStatus('🔄 Creating payment request...', 'info');
     
     try {
-      // Initialize Pi SDK again to be safe
+      // Initialize Pi
       await Pi.init({ version: '2.0', sandbox: true });
       
       const paymentData = {
         amount: 1,
         memo: "Unlock Pro Features - SpeedRun Alarm",
         metadata: { 
-          productId: "pro_unlock_v1", 
-          feature: "premium_alarm",
+          productId: "pro_unlock_v1",
           productName: "Pro Unlock"
         }
       };
       
-      // ⭐⭐⭐ ALL CALLBACK FUNCTIONS INCLUDED ⭐⭐⭐
+      // Create payment with callbacks
       const callbacks = {
         onReadyForServerApproval: async (paymentId) => {
-          console.log('onReadyForServerApproval:', paymentId);
-          showStatus('📡 Approving payment on server...', 'info');
-          
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/payments/approve`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId })
-            });
-            
-            if (response.ok) {
-              showStatus('✅ Payment approved! Waiting for blockchain...', 'success');
-            } else {
-              throw new Error('Approval failed');
-            }
-          } catch (error) {
-            console.error('Approval error:', error);
-            showStatus('❌ Server approval failed', 'error');
-          }
+          console.log('Payment approved on server:', paymentId);
+          showStatus('✅ Payment approved!', 'success');
+          // In production, send to your backend
+          // For demo, we'll simulate success
+          return { success: true };
         },
         
         onReadyForServerCompletion: async (paymentId, txid) => {
-          console.log('onReadyForServerCompletion:', paymentId, txid);
-          showStatus('⛓️ Completing transaction on blockchain...', 'info');
+          console.log('Payment completed:', paymentId, txid);
+          showStatus('🎉 Payment successful! Unlocking Pro...', 'success');
           
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/payments/complete`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId, txid })
-            });
-            
-            if (response.ok) {
-              isProUnlocked = true;
-              localStorage.setItem('pro_unlocked', 'true');
-              updateProUI();
-              showStatus('🎉 Pro Unlocked! Thank you for your purchase! 🎉', 'success');
-            } else {
-              throw new Error('Completion failed');
-            }
-          } catch (error) {
-            console.error('Completion error:', error);
-            showStatus('❌ Transaction completion failed', 'error');
-          }
+          // Unlock Pro features
+          isProUnlocked = true;
+          localStorage.setItem('pro_unlocked', 'true');
+          updateProUI();
+          showStatus('🎉 Pro Unlocked! Enjoy premium features!', 'success');
+          return { success: true };
         },
         
         onIncompletePaymentFound: async (paymentId) => {
-          console.log('onIncompletePaymentFound:', paymentId);
-          showStatus('🔄 Found incomplete payment, resuming...', 'info');
-          
-          // Try to complete the incomplete payment
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/payments/incomplete`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId })
-            });
-            
-            if (response.ok) {
-              const data = await response.json();
-              if (data.completed) {
-                isProUnlocked = true;
-                localStorage.setItem('pro_unlocked', 'true');
-                updateProUI();
-                showStatus('🎉 Previous payment completed! Pro Unlocked!', 'success');
-              }
-            }
-          } catch (error) {
-            console.error('Incomplete payment error:', error);
-          }
+          console.log('Incomplete payment found:', paymentId);
+          showStatus('🔄 Found incomplete payment. Please complete it.', 'info');
+          return { success: false };
         }
       };
       
-      // Create payment with all callbacks
       await Pi.createPayment(paymentData, callbacks);
       
     } catch (error) {
       console.error('Payment error:', error);
-      if (error.message && error.message.includes('payments scope')) {
+      if (error.message && error.message.includes('payments')) {
         showStatus('❌ Payments scope missing. Please sign out and sign in again.', 'error');
         hasPaymentsScope = false;
         localStorage.setItem('pi_has_payments', 'false');
@@ -665,7 +633,7 @@
     }
   }
   
-  // ==================== ALARM, TIMER, STOPWATCH ====================
+  // ==================== ALARM FUNCTIONS ====================
   let alarmTime = null;
   let isRinging = false;
   let currentSteps = 0;
@@ -735,11 +703,6 @@
     beepInterval = setInterval(() => {
       if (isRinging) playBeep();
     }, 1500);
-    
-    // Auto-dismiss if Pro is not unlocked (should not happen)
-    if (!isProUnlocked) {
-      stopRinging();
-    }
   }
   
   function playBeep() {
@@ -784,7 +747,7 @@
     }
   }
   
-  // Speed tracker using device motion
+  // Speed tracker
   function initSpeedTracker() {
     if (window.DeviceMotionEvent) {
       const handler = (e) => {
@@ -843,9 +806,7 @@
   
   document.getElementById('startTimer').onclick = () => {
     if (timerActive) return;
-    if (timerSeconds <= 0) {
-      timerSeconds = 60;
-    }
+    if (timerSeconds <= 0) timerSeconds = 60;
     timerActive = true;
     timerInt = setInterval(() => {
       if (timerActive && timerSeconds > 0) {
@@ -904,13 +865,14 @@
     initSpeedTracker();
     
     // Check for existing session
-    const hasSession = await checkExistingSession();
-    if (!hasSession && typeof Pi !== 'undefined') {
-      // Auto-initialize Pi SDK
+    await checkExistingSession();
+    
+    // Initialize Pi SDK in background
+    if (typeof Pi !== 'undefined') {
       try {
         await Pi.init({ version: '2.0', sandbox: true });
-      } catch (e) {
-        console.log('Pi init on load:', e);
+      } catch(e) {
+        console.log('Pi init background:', e);
       }
     }
   }
@@ -933,7 +895,7 @@
     };
   });
   
-  // Start the app
+  // Start
   init();
 </script>
 </body>
