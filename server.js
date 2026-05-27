@@ -1,79 +1,59 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+async function authenticateWithPi() {
+  try {
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Your Pi Network API Key
-const PI_API_KEY = process.env.PI_API_KEY || 'gsk0h9k6wasm00xsii29q0hdlnaxegnsusnnqoneqsffimgyby1gjgbt1auwg8mn';
-
-app.use(cors());
-app.use(express.json());
-
-// Helper function to call Pi API
-async function callPiAPI(endpoint, method = 'GET', body = null) {
-  const url = `https://api.minepi.com/v2${endpoint}`;
-  const options = {
-    method,
-    headers: {
-      'Authorization': `Key ${PI_API_KEY}`,
-      'Content-Type': 'application/json'
+    if (typeof Pi === 'undefined') {
+      showStatus('❌ Open app inside Pi Browser', 'error');
+      return;
     }
-  };
-  if (body) options.body = JSON.stringify(body);
-  
-  const response = await fetch(url, options);
-  const data = await response.json();
-  
-  if (!response.ok) {
-    throw new Error(`Pi API error: ${JSON.stringify(data)}`);
+
+    showStatus('🔄 Initializing Pi SDK...', 'info');
+
+    await Pi.init({
+      version: "2.0",
+      sandbox: false
+    });
+
+    showStatus('🔐 Requesting Pi permissions...', 'info');
+
+    const scopes = ['username', 'payments'];
+
+    const auth = await Pi.authenticate(
+      scopes,
+      onIncompletePaymentFound
+    );
+
+    console.log(auth);
+
+    piAccessToken = auth.accessToken;
+
+    piUser = auth.user;
+
+    localStorage.setItem('pi_username', auth.user.username);
+    localStorage.setItem('pi_token', auth.accessToken);
+
+    document.getElementById('usernameDisplay').innerHTML =
+      `👤 ${auth.user.username}`;
+
+    document.getElementById('authStatus').innerHTML =
+      '✅ Pi Connected';
+
+    document.getElementById('signInBtn').style.display = 'none';
+
+    document.getElementById('signOutBtn').style.display = 'inline-block';
+
+    showStatus('✅ Login successful', 'success');
+
+  } catch (error) {
+
+    console.error(error);
+
+    showStatus(
+      `❌ ${error.message}`,
+      'error'
+    );
   }
-  return data;
 }
 
-// Approve payment endpoint
-app.post('/api/payments/approve', async (req, res) => {
-  const { paymentId } = req.body;
-  
-  if (!paymentId) {
-    return res.status(400).json({ error: 'paymentId required' });
-  }
-  
-  try {
-    const result = await callPiAPI(`/payments/${paymentId}/approve`, 'POST', { approve: true });
-    console.log(`✅ Payment ${paymentId} approved`);
-    res.json(result);
-  } catch (error) {
-    console.error('Approval error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Complete payment endpoint
-app.post('/api/payments/complete', async (req, res) => {
-  const { paymentId, txid } = req.body;
-  
-  if (!paymentId || !txid) {
-    return res.status(400).json({ error: 'paymentId and txid required' });
-  }
-  
-  try {
-    const result = await callPiAPI(`/payments/${paymentId}/complete`, 'POST', { txid });
-    console.log(`✅ Payment ${paymentId} completed with txid: ${txid}`);
-    res.json(result);
-  } catch (error) {
-    console.error('Completion error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 Pi API Key configured: ${PI_API_KEY ? '✅ Yes' : '❌ No'}`);
-});
+function onIncompletePaymentFound(payment) {
+  console.log("Incomplete Payment Found:", payment);
+}
