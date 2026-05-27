@@ -263,13 +263,6 @@
       font-size: 12px;
       z-index: 1000;
     }
-    .wallet-address {
-      font-size: 0.6rem;
-      color: #94a3b8;
-      text-align: center;
-      margin-top: 0.5rem;
-      word-break: break-all;
-    }
   </style>
 </head>
 <body>
@@ -293,7 +286,6 @@
       <div class="premium-status" id="premiumStatus">⚡ Premium: LOCKED</div>
       <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.5rem;">🔓 Unlock for 0.5 Pi (Lifetime)</div>
       <button id="unlockBtn" class="pi-btn unlock-btn">💎 UNLOCK PREMIUM - 0.5 Pi 💎</button>
-      <div class="wallet-address">📤 Payments to: GBPLDTU5NRMKGDCQWGHQAGU2R3KDRRXI6TIOYCXKONR4VZFW6NTB6I6N</div>
     </div>
   </div>
 
@@ -407,22 +399,18 @@
   }
   
   // ========== CORRECT AUTHENTICATION WITH PAYMENTS SCOPE ==========
-  // This is the pattern you requested
-  const scopes = ['payments'];  // Only payments scope is needed
+  const scopes = ['payments'];
   
   function onIncompletePaymentFound(payment) {
     console.log("Incomplete payment found:", payment);
     showToast('Found incomplete payment. Completing...', false);
     
-    // Handle incomplete payment - unlock premium
-    if (payment && payment.identifier) {
-      setTimeout(() => {
-        isPremium = true;
-        localStorage.setItem('premium_unlocked', 'true');
-        applyBlur();
-        showToast('Previous payment completed! Premium unlocked!', false);
-      }, 2000);
-    }
+    setTimeout(() => {
+      isPremium = true;
+      localStorage.setItem('premium_unlocked', 'true');
+      applyBlur();
+      showToast('Previous payment completed! Premium unlocked!', false);
+    }, 2000);
   }
   
   // Initialize Pi first
@@ -436,7 +424,6 @@
       authStatus.innerText = '🔄 Initializing Pi SDK...';
       await Pi.init({ version: '2.0', sandbox: true });
       
-      // Check for existing session
       const storedUser = localStorage.getItem('pi_user');
       if (storedUser) {
         currentUser = JSON.parse(storedUser);
@@ -445,9 +432,6 @@
         authStatus.innerText = '✅ Authenticated with payments scope';
         paymentSection.style.display = 'block';
         signInBtn.style.display = 'none';
-        
-        // Check for incomplete payments
-        onIncompletePaymentFound({ identifier: 'check' });
       }
       
     } catch (error) {
@@ -456,7 +440,7 @@
     }
   }
   
-  // Sign in function using your pattern
+  // Sign in function
   function signIn() {
     if (typeof Pi === 'undefined') {
       showToast('Please open in Pi Browser', true);
@@ -466,7 +450,6 @@
     authStatus.innerText = '🔄 Requesting payments access...';
     signInBtn.disabled = true;
     
-    // Using the exact pattern you provided
     Pi.authenticate(scopes, onIncompletePaymentFound)
       .then(function(auth) {
         console.log("Authentication successful:", auth);
@@ -482,7 +465,6 @@
           usernameDisplay.innerText = `👤 ${currentUser.username}`;
           authStatus.innerText = '✅ Authenticated! Ready for payments.';
           
-          // Save session
           localStorage.setItem('pi_user', JSON.stringify(currentUser));
           
           paymentSection.style.display = 'block';
@@ -527,12 +509,10 @@
         memo: 'Unlock Premium Speed Feature - Lifetime Access',
         metadata: JSON.stringify({
           product: 'premium_speed_unlock',
-          type: 'lifetime',
-          wallet: 'GBPLDTU5NRMKGDCQWGHQAGU2R3KDRRXI6TIOYCXKONR4VZFW6NTB6I6N'
+          type: 'lifetime'
         })
       };
       
-      // Payment callbacks
       function onReadyForServerApproval(paymentId) {
         console.log('✅ Payment approved:', paymentId);
         showToast('Payment approved!', false);
@@ -571,7 +551,6 @@
       
       console.log('Payment created:', payment);
       
-      // Poll for completion
       let pollCount = 0;
       const pollInterval = setInterval(() => {
         pollCount++;
