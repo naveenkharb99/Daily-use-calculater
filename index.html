@@ -677,6 +677,53 @@
   }
 
   async function authenticateWithPi() {
+  try {
+    authStatus.innerText = '🔄 Connecting to Pi Network...';
+
+    // ✅ FIX: required scopes
+    const scopes = ['username', 'payments'];
+
+    const auth = await Pi.authenticate(scopes, {
+
+      // ✅ REQUIRED CALLBACK (fix error)
+      onIncompletePaymentFound: function (payment) {
+        console.log("Incomplete payment found:", payment);
+      },
+
+      // optional but recommended
+      onAuth: function (authData) {
+        console.log("Auth success callback:", authData);
+      }
+
+    });
+
+    if (!auth || !auth.accessToken) {
+      throw new Error("No access token received");
+    }
+
+    const validation = await validatePiToken(auth.accessToken);
+
+    if (!validation.valid) {
+      throw new Error("Token validation failed");
+    }
+
+    piAccessToken = auth.accessToken;
+    piUser = validation.user;
+
+    const username = validation.user.username || "Pi User";
+
+    saveSession(username, auth.accessToken);
+    updateAuthUI(username);
+
+    await sendTokenToBackend(auth.accessToken, username);
+
+    authStatus.innerText = "✅ Pi Login Success";
+
+  } catch (error) {
+    console.error("Pi Auth Error:", error);
+    authStatus.innerText = "❌ Authentication Failed. Try again.";
+  }
+} function authenticateWithPi() {
     try {
       authStatus.innerText = '🔄 Authenticating...';
       const scopes = ['username', 'payments'];
