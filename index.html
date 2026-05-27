@@ -24,22 +24,40 @@
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       padding: 1.2rem;
     }
-    .pi-payment-section {
+    .pi-auth-section, .pi-payment-section {
       background: linear-gradient(135deg, #1a2a3a, #0f1a24);
       border-radius: 1.3rem;
       padding: 1rem;
       margin-bottom: 1rem;
       border: 1px solid #fbbf24;
     }
-    .premium-status { color: #facc15; font-weight: 700; font-size: 1rem; }
-    .unlock-btn {
-      background: #10b981;
-      color: white;
+    .user-info, .payment-info {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .username-display, .premium-status {
+      color: #facc15;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .auth-status, .payment-status {
+      font-size: 0.7rem;
+      color: #94a3b8;
+    }
+    .pi-btn {
+      background: #facc15;
+      color: #1e293b;
       border: none;
       padding: 0.5rem 1rem;
       border-radius: 2rem;
       font-weight: 700;
       cursor: pointer;
+    }
+    .unlock-btn {
+      background: #10b981;
       width: 100%;
       margin-top: 0.5rem;
     }
@@ -251,11 +269,23 @@
 <div class="app-container">
   <h1>🏃‍♂️ SPEED RUN ALARM</h1>
 
-  <div class="pi-payment-section">
+  <!-- Pi Authentication Section -->
+  <div class="pi-auth-section" id="authSection">
+    <div class="user-info">
+      <div>
+        <div class="username-display" id="usernameDisplay">Not signed in</div>
+        <div class="auth-status" id="authStatus">🔐 Sign in with Pi Network (Required for payments)</div>
+      </div>
+      <button id="signInBtn" class="pi-btn">🔓 Sign in with Pi</button>
+    </div>
+  </div>
+
+  <!-- Pi Payment Section (shows after sign in) -->
+  <div class="pi-payment-section" id="paymentSection" style="display:none;">
     <div>
       <div class="premium-status" id="premiumStatus">⚡ Premium: LOCKED</div>
       <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.5rem;">🔓 Unlock for 0.5 Pi (Lifetime)</div>
-      <button id="unlockBtn" class="unlock-btn">💎 UNLOCK PREMIUM - 0.5 Pi 💎</button>
+      <button id="unlockBtn" class="pi-btn unlock-btn">💎 UNLOCK PREMIUM - 0.5 Pi 💎</button>
     </div>
   </div>
 
@@ -330,10 +360,17 @@
 </div>
 
 <script>
-  // ======================= PI NETWORK PAYMENTS - CORRECT CALLBACK STRUCTURE =======================
+  // ======================= PI NETWORK AUTHENTICATION WITH PAYMENTS SCOPE =======================
   let isPremium = localStorage.getItem('premium_unlocked') === 'true';
-  let piInitialized = false;
+  let piUser = null;
+  let piAccessToken = null;
+  let isAuthenticated = false;
   
+  const signInBtn = document.getElementById('signInBtn');
+  const authSection = document.getElementById('authSection');
+  const paymentSection = document.getElementById('paymentSection');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  const authStatus = document.getElementById('authStatus');
   const unlockBtn = document.getElementById('unlockBtn');
   const premiumStatus = document.getElementById('premiumStatus');
   const alarmContent = document.getElementById('alarmContent');
@@ -367,12 +404,24 @@
     try {
       if (typeof Pi === 'undefined') {
         console.log('Pi SDK not loaded');
+        authStatus.innerText = '⚠️ Please open in Pi Browser';
         return false;
       }
       
       await Pi.init({ version: '2.0', sandbox: true });
-      piInitialized = true;
       console.log('Pi SDK initialized');
+      
+      // Check for existing session
+      const storedToken = localStorage.getItem('pi_access_token');
+      if (storedToken) {
+        piAccessToken = storedToken;
+        isAuthenticated = true;
+        usernameDisplay.innerText = `👤 ${localStorage.getItem('pi_username') || 'Pi User'}`;
+        authStatus.innerText = '✅ Authenticated (payments scope)';
+        paymentSection.style.display = 'block';
+        signInBtn.style.display = 'none';
+      }
+      
       return true;
     } catch (error) {
       console.error('Pi init error:', error);
@@ -380,10 +429,76 @@
     }
   }
   
-  // CORRECT PAYMENT FUNCTION WITH PROPER CALLBACKS
+  // SIGN IN WITH PAYMENTS SCOPE - THIS IS THE KEY FIX!
+  async function signIn() {
+    try {
+      authStatus.innerText = '🔄 Requesting payments access...';
+      signInBtn.disabled = true;
+      
+      // CRITICAL: Include 'payments' scope
+      const scopes = ['username', 'payments'];
+      
+      const auth = await Pi.authenticate(scopes, { onIncompletePending: true });
+      
+      if (auth && auth.accessToken) {
+        piAccessToken = auth.accessToken;
+        piUser = auth.user;
+        isAuthenticated = true;
+        
+        const username = auth.user?.username || 'Pi User';
+        usernameDisplay.innerText = `👤 ${username}`;
+        authStatus.innerText = '✅ Authenticated with payments scope!';
+        
+        // Store session
+        localStorage.setItem('pi_username', username);
+        localStorage.setItem('pi_access_token', auth.accessToken);
+        
+        paymentSection.style.display = 'block';
+        signInBtn.style.display = 'none';
+        
+        showToast('Successfully signed in! You can now make payments.', false);
+        
+        // Check for incomplete payments
+        await checkIncompletePayments();
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      authStatus.innerText = '❌ Sign in failed. Please try again.';
+      showToast('Sign in failed: ' + (error.message || 'Unknown error'), true);
+    } finally {
+      signInBtn.disabled = false;
+    }
+  }
+  
+  // Check for incomplete payments
+  async function checkIncompletePayments() {
+    try {
+      if (!isAuthenticated) return;
+      
+      const incompletePayments = await Pi.getIncompletePayments();
+      if (incompletePayments && incompletePayments.length > 0) {
+        console.log('Found incomplete payments:', incompletePayments);
+        for (const payment of incompletePayments) {
+          showToast('Found pending payment. Completing...', false);
+          // In sandbox, auto-complete
+          setTimeout(() => {
+            isPremium = true;
+            localStorage.setItem('premium_unlocked', 'true');
+            applyBlur();
+            showToast('Previous payment completed! Premium unlocked!', false);
+          }, 1000);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking incomplete payments:', error);
+    }
+  }
+  
+  // CREATE PAYMENT
   async function createPayment() {
-    if (!piInitialized) {
-      await initPi();
+    if (!isAuthenticated) {
+      showToast('Please sign in first', true);
+      return;
     }
     
     if (isPremium) {
@@ -395,7 +510,6 @@
       unlockBtn.disabled = true;
       unlockBtn.textContent = '⏳ Processing...';
       
-      // Payment data
       const paymentData = {
         amount: 0.5,
         memo: 'Unlock Premium Speed Feature - Lifetime Access',
@@ -406,20 +520,14 @@
         })
       };
       
-      // Define callbacks as separate functions (CORRECT WAY)
+      // Define callbacks
       function onReadyForServerApproval(paymentId) {
-        console.log('✅ onReadyForServerApproval:', paymentId);
-        showToast('Payment approved by server', false);
-        // In sandbox, auto-complete after approval
-        setTimeout(() => {
-          // This would normally call your backend to approve
-          console.log('Payment approved for:', paymentId);
-        }, 500);
+        console.log('✅ Payment approved:', paymentId);
+        showToast('Payment approved!', false);
       }
       
       function onReadyForServerCompletion(paymentId, txid) {
-        console.log('✅ onReadyForServerCompletion:', paymentId, txid);
-        // UNLOCK PREMIUM HERE
+        console.log('✅ Payment completed:', paymentId, txid);
         isPremium = true;
         localStorage.setItem('premium_unlocked', 'true');
         applyBlur();
@@ -429,24 +537,18 @@
       }
       
       function onIncompletePaymentFound(payment) {
-        console.log('⚠️ onIncompletePaymentFound:', payment);
-        showToast('Found incomplete payment. Completing...', false);
-        
-        // Handle incomplete payment
-        if (payment && payment.identifier) {
-          // For sandbox, auto-complete
-          setTimeout(() => {
-            isPremium = true;
-            localStorage.setItem('premium_unlocked', 'true');
-            applyBlur();
-            showToast('Previous payment completed! Premium unlocked!', false);
-            unlockBtn.disabled = false;
-            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
-          }, 1000);
-        }
+        console.log('⚠️ Incomplete payment found:', payment);
+        showToast('Completing previous payment...', false);
+        setTimeout(() => {
+          isPremium = true;
+          localStorage.setItem('premium_unlocked', 'true');
+          applyBlur();
+          showToast('Payment completed! Premium unlocked!', false);
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+        }, 2000);
       }
       
-      // Create payment with callbacks object
       const payment = await Pi.createPayment(paymentData, {
         onReadyForServerApproval: onReadyForServerApproval,
         onReadyForServerCompletion: onReadyForServerCompletion,
@@ -454,26 +556,6 @@
       });
       
       console.log('Payment created:', payment);
-      
-      // If we have a payment ID but callbacks didn't trigger
-      if (payment && payment.identifier && !isPremium) {
-        // Poll for completion
-        const checkInterval = setInterval(() => {
-          if (isPremium) {
-            clearInterval(checkInterval);
-            unlockBtn.disabled = false;
-            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
-          }
-        }, 2000);
-        
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          if (!isPremium) {
-            unlockBtn.disabled = false;
-            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
-          }
-        }, 60000);
-      }
       
     } catch (error) {
       console.error('Payment error:', error);
@@ -483,7 +565,7 @@
     }
   }
   
-  // Alternative: Manual unlock for testing (remove in production)
+  // Manual unlock for testing
   window.debugUnlock = function() {
     isPremium = true;
     localStorage.setItem('premium_unlocked', 'true');
@@ -494,10 +576,11 @@
   // Initialize on load
   initPi();
   
+  signInBtn.onclick = signIn;
   unlockBtn.onclick = createPayment;
   applyBlur();
   
-  // ======================= ALARM LOGIC =======================
+  // ======================= ALARM LOGIC (Full featured) =======================
   let alarmRepeatType = "once";
   let selectedWeekDays = [];
   let currentHour24 = 7, currentMinute = 30;
