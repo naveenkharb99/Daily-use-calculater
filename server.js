@@ -1,5 +1,4 @@
-// backend/server.js - Pi Network Payment Server
-// Run with: node server.js
+// server.js - Express backend for Pi Network payments
 // Install: npm install express cors axios dotenv
 
 require('dotenv').config();
@@ -8,159 +7,145 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
-// Pi Network API configuration
+// IMPORTANT: Set your Pi Network API Key in .env file
+// PI_NETWORK_API_KEY=your_api_key_here
 const PI_API_KEY = process.env.PI_NETWORK_API_KEY;
-const PI_API_BASE = 'https://api.minepi.com/v2';
 
 if (!PI_API_KEY) {
-  console.error('❌ PI_NETWORK_API_KEY is not set in .env file');
-  console.error('Please create a .env file with: PI_NETWORK_API_KEY=your_api_key_here');
+  console.error('❌ PI_NETWORK_API_KEY not set in .env file!');
+  console.error('Please get your API key from Pi Network Developer Portal');
   process.exit(1);
 }
 
 console.log('✅ Pi Network API Key loaded');
 
-// Store payment sessions (in production, use a database)
-const paymentSessions = new Map();
+// Store user sessions (in production, use a database)
+const userSessions = new Map();
 
-// Helper: Call Pi Network API with API Key
-async function callPiAPI(endpoint, method = 'GET', data = null) {
-  const url = `${PI_API_BASE}${endpoint}`;
-  const config = {
-    method,
-    headers: {
-      'Authorization': `Key ${PI_API_KEY}`,
-      'Content-Type': 'application/json'
-    }
-  };
+// Endpoint to handle Pi authentication
+app.post('/api/pi-auth', async (req, res) => {
+  const { accessToken, username, timestamp } = req.body;
   
-  if (data && (method === 'POST' || method === 'PUT')) {
-    config.data = data;
+  if (!accessToken) {
+    return res.status(400).json({ error: 'Access token required' });
   }
   
   try {
-    const response = await axios({ ...config, url });
-    return { success: true, data: response.data };
+    const validationResponse = await axios.get('https://api.minepi.com/v2/me', {
+      headers: { 'Authorization': `Bearer ${accessToken}` }
+    });
+    
+    if (validationResponse.status === 200) {
+      const userData = validationResponse.data;
+      const sessionId = Math.random().toString(36).substring(2);
+      userSessions.set(sessionId, {
+        username: userData.username,
+        accessToken: accessToken,
+        createdAt: Date.now(),
+        userData: userData
+      });
+      
+      res.json({
+        success: true,
+        sessionId: sessionId,
+        user: { username: userData.username, uid: userData.uid }
+      });
+    } else {
+      res.status(401).json({ error: 'Invalid token' });
+    }
   } catch (error) {
-    console.error(`Pi API Error (${endpoint}):`, error.response?.data || error.message);
-    return { 
-      success: false, 
-      error: error.response?.data?.error || error.message 
-    };
+    console.error('Token validation error:', error.response?.data || error.message);
+    res.status(401).json({ error: 'Token validation failed' });
   }
-}
+});
 
-// Endpoint: Approve payment (called from frontend onReadyForServerApproval)
+// Endpoint to approve payment (called from frontend onReadyForServerApproval)
 app.post('/api/payments/approve', async (req, res) => {
   const { paymentId } = req.body;
   
   if (!paymentId) {
-    return res.status(400).json({ error: 'paymentId required' });
+    return res.status(400).json({ error: 'Payment ID required' });
   }
   
-  console.log(`📝 Approving payment: ${paymentId}`);
-  
-  // Call Pi Network API to approve the payment
-  const result = await callPiAPI(`/payments/${paymentId}/approve`, 'POST');
-  
-  if (result.success) {
-    console.log(`✅ Payment approved: ${paymentId}`);
-    paymentSessions.set(paymentId, {
-      status: 'approved',
-      approvedAt: Date.now()
-    });
-    res.json({ success: true, payment: result.data });
-  } else {
-    console.error(`❌ Failed to approve payment: ${paymentId}`);
-    res.status(500).json({ error: result.error });
+  try {
+    const response = await axios.post(
+      `https://api.minepi.com/v2/payments/${paymentId}/approve`,
+      {},
+      {
+        headers: {
+          'Authorization': `Key ${PI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    
+    console.log(`✅ Payment ${paymentId} approved`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Payment approval error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Payment approval failed', details: error.response?.data });
   }
 });
 
-// Endpoint: Complete payment (called from frontend onReadyForServerCompletion)
+// Endpoint to complete payment (called from frontend onReadyForServerCompletion)
 app.post('/api/payments/complete', async (req, res) => {
   const { paymentId, txid } = req.body;
   
   if (!paymentId || !txid) {
-    return res.status(400).json({ error: 'paymentId and txid required' });
+    return res.status(400).json({ error: 'Payment ID and TXID required' });
   }
   
-  console.log(`💰 Completing payment: ${paymentId}, txid: ${txid}`);
-  
-  // Call Pi Network API to complete the payment
-  const result = await callPiAPI(`/payments/${paymentId}/complete`, 'POST', { txid });
-  
-  if (result.success) {
-    console.log(`✅ Payment completed: ${paymentId}`);
-    paymentSessions.set(paymentId, {
-      status: 'completed',
-      completedAt: Date.now(),
-      txid
-    });
+  try {
+    const response = await axios.post(
+      `https://api.minepi.com/v2/payments/${paymentId}/complete`,
+      { txid },
+      {
+        headers: {
+          'Authorization': `Key ${PI_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
     
-    // Grant premium features to user (store in DB for production)
-    // For demo, we'll return success and frontend will store in localStorage
-    res.json({ 
-      success: true, 
-      payment: result.data,
-      premiumGranted: true
-    });
-  } else {
-    console.error(`❌ Failed to complete payment: ${paymentId}`);
-    res.status(500).json({ error: result.error });
+    console.log(`✅ Payment ${paymentId} completed with txid: ${txid}`);
+    res.json(response.data);
+  } catch (error) {
+    console.error('Payment completion error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Payment completion failed', details: error.response?.data });
   }
 });
 
-// Endpoint: Check payment status (for recovery)
-app.get('/api/payments/:paymentId/status', async (req, res) => {
+// Endpoint to get payment details (for verification)
+app.get('/api/payments/:paymentId', async (req, res) => {
   const { paymentId } = req.params;
   
-  const result = await callPiAPI(`/payments/${paymentId}`, 'GET');
-  
-  if (result.success) {
-    res.json(result.data);
-  } else {
-    res.status(404).json({ error: 'Payment not found' });
+  try {
+    const response = await axios.get(
+      `https://api.minepi.com/v2/payments/${paymentId}`,
+      {
+        headers: { 'Authorization': `Key ${PI_API_KEY}` }
+      }
+    );
+    
+    res.json(response.data);
+  } catch (error) {
+    console.error('Get payment error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to get payment details' });
   }
 });
 
-// Endpoint: Get premium status for user (based on stored sessions)
-app.get('/api/premium/status', (req, res) => {
-  const userId = req.headers['x-user-id'];
-  
-  if (!userId) {
-    return res.json({ hasPremium: false });
-  }
-  
-  // In production, check database for user's premium status
-  // For demo, we'll check localStorage equivalent via query param
-  const hasPremium = req.query.hasPremium === 'true';
-  
-  res.json({ 
-    hasPremium,
-    features: {
-      runToDismiss: hasPremium,
-      speedTracker: hasPremium,
-      dailyWeeklyRepeats: hasPremium,
-      adFree: hasPremium
-    }
-  });
-});
-
-// Endpoint: Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: Date.now() });
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: Date.now() });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Pi Payment Server running on http://localhost:${PORT}`);
-  console.log(`📋 Endpoints:`);
-  console.log(`   POST /api/payments/approve`);
-  console.log(`   POST /api/payments/complete`);
-  console.log(`   GET  /api/payments/:id/status`);
-  console.log(`   GET  /api/premium/status`);
+  console.log(`🚀 Backend server running on port ${PORT}`);
+  console.log(`📍 Payment endpoints ready for Pi Network`);
+  console.log(`💡 Frontend should be served from: http://localhost:${PORT}`);
 });
