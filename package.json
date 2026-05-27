@@ -1,7 +1,7 @@
 {
-  "name": "pi-alarm-backend",
+  "name": "pi-speedrun-alarm",
   "version": "1.0.0",
-  "description": "Pi Network payment backend for SpeedRun Alarm",
+  "description": "Pi Network powered alarm clock with speed tracking and payments",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
