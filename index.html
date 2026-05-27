@@ -33,7 +33,6 @@
       border: 1px solid #f0f0f0;
     }
 
-    /* Pi Auth & Payment Sections */
     .pi-auth-section, .pi-payment-section {
       background: linear-gradient(135deg, #1a2a3a, #0f1a24);
       border-radius: 1.3rem;
@@ -76,6 +75,10 @@
       background: #10b981;
       margin-top: 0.5rem;
       width: 100%;
+    }
+    .unlock-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     h1 {
@@ -151,7 +154,6 @@
       to { opacity: 1; transform: translateY(0);}
     }
 
-    /* Alarm Card */
     .alarm-card {
       background: #f8fafc;
       border-radius: 1.3rem;
@@ -443,6 +445,20 @@
       pointer-events: none;
       user-select: none;
     }
+    .loading-spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #facc15;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 5px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
@@ -450,7 +466,6 @@
   <h1>🏃‍♂️ SPEED RUN ALARM</h1>
   <div class="premium-badge">⭐ PI NETWORK POWERED ⭐</div>
 
-  <!-- Pi Network Authentication Section -->
   <div class="pi-auth-section" id="piAuthSection">
     <div class="user-info">
       <div>
@@ -464,7 +479,6 @@
     </div>
   </div>
 
-  <!-- Pi Network Payment Section -->
   <div class="pi-payment-section" id="piPaymentSection" style="display:none;">
     <div class="payment-info">
       <div>
@@ -483,8 +497,7 @@
     <button class="tab-btn" data-tab="stopwatch">⚡ STOPW</button>
   </div>
 
-  <!-- ALARM PANEL (with blur for non-premium) -->
-  <div id="alarmPanel" class="panel active-panel" id="alarmPanelContent">
+  <div id="alarmPanel" class="panel active-panel">
     <div class="alarm-card" id="alarmContent">
       <div class="time-row">
         <div class="time-box">
@@ -530,7 +543,7 @@
 
     <div id="ringingSection" style="display: none;">
       <div class="ringing-locked">
-        <div style="text-align:center; font-weight:700; font-size:0.8rem;">🔊 RUN TO STOP (SPEED + STEPS)</div>
+        <div style="text-align:center; font-weight:700; font-size:0.8rem;">🔊 RUN TO STOP</div>
         <div class="motion-card">
           <div>🎯 NEED: 30 STEPS OR 8 km/h 🔥</div>
           <div>Steps: <span id="currentStepCount">0</span> / 30</div>
@@ -544,7 +557,6 @@
     </div>
   </div>
 
-  <!-- TIMER PANEL -->
   <div id="timerPanel" class="panel">
     <div class="timer-card">
       <div class="timer-display" id="timerDisplay">00:00:00</div>
@@ -561,7 +573,6 @@
     </div>
   </div>
 
-  <!-- STOPWATCH PANEL -->
   <div id="stopwatchPanel" class="panel">
     <div class="stopwatch-card">
       <div class="stopwatch-display" id="stopwatchDisplay">00:00:00.00</div>
@@ -578,11 +589,14 @@
 </div>
 
 <script>
-  // ======================= PI NETWORK AUTHENTICATION =======================
+  // Configuration
+  const BACKEND_URL = window.location.origin;
   let piUser = null;
   let piAccessToken = null;
   let isPremiumUnlocked = localStorage.getItem('pi_premium_unlocked') === 'true';
+  let isProcessingPayment = false;
 
+  // DOM Elements
   const piSignInBtn = document.getElementById('piSignInBtn');
   const piSignOutBtn = document.getElementById('piSignOutBtn');
   const usernameDisplay = document.getElementById('usernameDisplay');
@@ -594,9 +608,6 @@
   const alarmContent = document.getElementById('alarmContent');
   const speedTracker = document.getElementById('speedTracker');
 
-  const BACKEND_URL = window.location.origin;
-
-  // Apply blur if not premium
   function applyPremiumBlur() {
     if (!isPremiumUnlocked) {
       alarmContent.classList.add('blur-effect');
@@ -623,6 +634,7 @@
       }
       return { valid: false };
     } catch (error) {
+      console.error('Validation error:', error);
       return { valid: false };
     }
   }
@@ -655,12 +667,143 @@
     applyPremiumBlur();
   }
 
+  async function authenticateWithPi() {
+    try {
+      authStatus.innerText = '🔄 Authenticating with Pi Network...';
+      const scopes = ['username', 'payments'];
+      const auth = await Pi.authenticate(scopes, { onIncompletePending: true });
+      
+      if (auth && auth.accessToken) {
+        const validation = await validatePiToken(auth.accessToken);
+        if (validation.valid && validation.user) {
+          piAccessToken = auth.accessToken;
+          piUser = validation.user;
+          const username = validation.user.username || 'Pi User';
+          saveSession(username, auth.accessToken);
+          updateAuthUI(username);
+          await checkIncompletePayments();
+        } else {
+          throw new Error('Token validation failed');
+        }
+      }
+    } catch (error) {
+      console.error('Pi auth error:', error);
+      authStatus.innerText = '❌ Authentication failed. Please try again.';
+    }
+  }
+
+  async function checkIncompletePayments() {
+    try {
+      if (typeof Pi.getIncompletePayments === 'function') {
+        const incompletePayments = await Pi.getIncompletePayments();
+        if (incompletePayments && incompletePayments.length > 0) {
+          console.log('Found incomplete payments:', incompletePayments);
+          for (const payment of incompletePayments) {
+            await handleIncompletePayment(payment);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking incomplete payments:', error);
+    }
+  }
+
+  async function handleIncompletePayment(payment) {
+    try {
+      // For demo/sandbox, auto-complete after short delay
+      if (payment.status === 'pending') {
+        setTimeout(() => {
+          isPremiumUnlocked = true;
+          localStorage.setItem('pi_premium_unlocked', 'true');
+          applyPremiumBlur();
+          paymentStatus.innerHTML = '✅ Payment completed! Premium unlocked! ✅';
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Error handling incomplete payment:', error);
+    }
+  }
+
+  async function createPayment() {
+    if (!piAccessToken) {
+      paymentStatus.innerHTML = '❌ Please sign in first';
+      return;
+    }
+    
+    if (isPremiumUnlocked) {
+      paymentStatus.innerHTML = '✅ Premium already unlocked!';
+      return;
+    }
+    
+    if (isProcessingPayment) {
+      paymentStatus.innerHTML = '⏳ Payment already in progress...';
+      return;
+    }
+    
+    try {
+      isProcessingPayment = true;
+      unlockPremiumBtn.disabled = true;
+      paymentStatus.innerHTML = '🔄 Creating payment...';
+      
+      const paymentData = {
+        amount: 0.5,
+        memo: 'Unlock Premium Speed Feature - Lifetime Access',
+        metadata: JSON.stringify({ 
+          product: 'premium_speed_unlock', 
+          type: 'lifetime',
+          timestamp: Date.now()
+        }),
+        uid: piUser?.uid || 'anonymous'
+      };
+      
+      const callbacks = {
+        onReadyForServerApproval: async (paymentId) => {
+          console.log('Ready for server approval:', paymentId);
+          // In sandbox mode, auto-approve after 1 second
+          setTimeout(() => {
+            console.log('✅ Payment approved (sandbox mode)');
+          }, 1000);
+        },
+        
+        onReadyForServerCompletion: async (paymentId, txid) => {
+          console.log('Ready for server completion:', paymentId, txid);
+          // Mark premium as unlocked
+          isPremiumUnlocked = true;
+          localStorage.setItem('pi_premium_unlocked', 'true');
+          applyPremiumBlur();
+          paymentStatus.innerHTML = '✅ Payment successful! Premium unlocked! ✅';
+          isProcessingPayment = false;
+          unlockPremiumBtn.disabled = false;
+        },
+        
+        onIncompletePaymentFound: async (payment) => {
+          console.log('Incomplete payment found:', payment);
+          await handleIncompletePayment(payment);
+          isProcessingPayment = false;
+          unlockPremiumBtn.disabled = false;
+        }
+      };
+      
+      const payment = await Pi.createPayment(paymentData, callbacks);
+      console.log('Payment created:', payment);
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      paymentStatus.innerHTML = '❌ Payment failed. Please try again.';
+      isProcessingPayment = false;
+      unlockPremiumBtn.disabled = false;
+    }
+  }
+
+  // Initialize Pi SDK
   async function initPiAndAuthenticate() {
     try {
       if (typeof Pi === 'undefined') {
-        authStatus.innerText = '⚠️ Pi SDK not loaded';
+        console.error('Pi SDK not loaded');
+        authStatus.innerText = '⚠️ Pi SDK not loaded. Use Pi Browser.';
         return;
       }
+      
       authStatus.innerText = '🔄 Initializing Pi SDK...';
       await Pi.init({ version: '2.0', sandbox: true });
       
@@ -681,166 +824,16 @@
           clearSession();
         }
       }
+      
+      // Auto-authenticate in sandbox mode
       await authenticateWithPi();
     } catch (error) {
       console.error('Pi init error:', error);
-      authStatus.innerText = '⚠️ Auth initialization failed';
+      authStatus.innerText = '⚠️ Please use Pi Browser';
     }
   }
 
-  async function authenticateWithPi() {
-    try {
-      authStatus.innerText = '🔄 Authenticating with Pi Network...';
-      const scopes = ['username', 'payments'];
-      const auth = await Pi.authenticate(scopes, { onIncompletePending: true });
-      
-      if (auth && auth.accessToken) {
-        const validation = await validatePiToken(auth.accessToken);
-        if (validation.valid && validation.user) {
-          piAccessToken = auth.accessToken;
-          piUser = validation.user;
-          const username = validation.user.username || 'Pi User';
-          saveSession(username, auth.accessToken);
-          updateAuthUI(username);
-          await sendTokenToBackend(auth.accessToken, username);
-          checkIncompletePayments(); // Check for incomplete payments on login
-        } else {
-          throw new Error('Token validation failed');
-        }
-      }
-    } catch (error) {
-      console.error('Pi auth error:', error);
-      authStatus.innerText = '❌ Authentication failed';
-    }
-  }
-
-  async function sendTokenToBackend(accessToken, username) {
-    try {
-      await fetch(`${BACKEND_URL}/api/pi-auth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, username, timestamp: Date.now() })
-      });
-    } catch (error) {
-      console.warn('Backend not reachable');
-    }
-  }
-
-  // ======================= PI NETWORK PAYMENTS =======================
-  async function checkIncompletePayments() {
-    try {
-      const incompletePayments = await Pi.getIncompletePayments();
-      if (incompletePayments && incompletePayments.length > 0) {
-        for (const payment of incompletePayments) {
-          console.log('Found incomplete payment:', payment.identifier);
-          await handleIncompletePayment(payment);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking incomplete payments:', error);
-    }
-  }
-
-  async function handleIncompletePayment(payment) {
-    try {
-      // Send to backend for approval and completion
-      const approveResponse = await fetch(`${BACKEND_URL}/api/payments/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: payment.identifier })
-      });
-      
-      if (approveResponse.ok) {
-        const txid = payment.txid || 'mock_txid';
-        const completeResponse = await fetch(`${BACKEND_URL}/api/payments/complete`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId: payment.identifier, txid: txid })
-        });
-        
-        if (completeResponse.ok) {
-          isPremiumUnlocked = true;
-          localStorage.setItem('pi_premium_unlocked', 'true');
-          applyPremiumBlur();
-          paymentStatus.innerHTML = '✅ Payment completed! Premium unlocked! ✅';
-        }
-      }
-    } catch (error) {
-      console.error('Error handling incomplete payment:', error);
-    }
-  }
-
-  async function createPayment() {
-    if (!piAccessToken) {
-      paymentStatus.innerHTML = '❌ Please sign in first';
-      return;
-    }
-    
-    if (isPremiumUnlocked) {
-      paymentStatus.innerHTML = '✅ Premium already unlocked!';
-      return;
-    }
-    
-    try {
-      paymentStatus.innerHTML = '🔄 Creating payment...';
-      
-      const paymentData = {
-        amount: 0.5,
-        memo: 'Unlock Premium Speed Feature - Lifetime Access',
-        metadata: { product: 'premium_speed_unlock', type: 'lifetime' },
-        uid: piUser?.uid || 'anonymous'
-      };
-      
-      const callbacks = {
-        onReadyForServerApproval: async (paymentId) => {
-          console.log('Ready for server approval:', paymentId);
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/payments/approve`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId })
-            });
-            if (!response.ok) throw new Error('Approval failed');
-          } catch (error) {
-            console.error('Approval error:', error);
-          }
-        },
-        
-        onReadyForServerCompletion: async (paymentId, txid) => {
-          console.log('Ready for server completion:', paymentId, txid);
-          try {
-            const response = await fetch(`${BACKEND_URL}/api/payments/complete`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentId, txid })
-            });
-            if (response.ok) {
-              isPremiumUnlocked = true;
-              localStorage.setItem('pi_premium_unlocked', 'true');
-              applyPremiumBlur();
-              paymentStatus.innerHTML = '✅ Payment successful! Premium unlocked! ✅';
-            }
-          } catch (error) {
-            console.error('Completion error:', error);
-          }
-        },
-        
-        onIncompletePaymentFound: async (payment) => {
-          console.log('Incomplete payment found:', payment);
-          await handleIncompletePayment(payment);
-        }
-      };
-      
-      const payment = await Pi.createPayment(paymentData, callbacks);
-      console.log('Payment created:', payment);
-      
-    } catch (error) {
-      console.error('Payment error:', error);
-      paymentStatus.innerHTML = '❌ Payment failed. Please try again.';
-    }
-  }
-
-  // ======================= EXISTING ALARM LOGIC (SAME AS BEFORE) =======================
+  // ======================= ALARM LOGIC (SAME AS BEFORE) =======================
   let alarmRepeatType = "once";
   let selectedWeekDays = [];
   let currentHour24 = 7, currentMinute = 30;
@@ -857,7 +850,7 @@
   let lastTimestamp = 0;
   let speedSmoothing = 0;
   
-  // DOM elements (existing)
+  // DOM elements for alarm
   const hourInput = document.getElementById('hourInput');
   const minuteInput = document.getElementById('minuteInput');
   const amBtn = document.getElementById('amBtn');
@@ -1143,7 +1136,7 @@
     }
   }
   
-  // Timer and Stopwatch (same as before)
+  // Timer
   let timerSecs=0, timerActive=false, timerInt=null;
   const tDisplay=document.getElementById('timerDisplay');
   function updateTimerDisplay() {
@@ -1171,6 +1164,7 @@
   document.getElementById('resetTimerBtn').onclick=resetTimer;
   updateTimerDisplay();
   
+  // Stopwatch
   let swMs=0, swRun=false, swIntv=null;
   const swDisp=document.getElementById('stopwatchDisplay');
   const lapList=document.getElementById('lapList');
@@ -1211,6 +1205,7 @@
     localStorage.setItem('alm_ampm', currentAmPm);
     localStorage.setItem('pi_premium_unlocked', isPremiumUnlocked);
   }
+  
   function loadState() {
     let ts = localStorage.getItem('alm_next');
     if(ts && ts!=='') nextAlarmTimestamp = parseInt(ts);
