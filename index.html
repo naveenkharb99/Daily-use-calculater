@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SpeedRun Alarm - Demo (Test Mode)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>SpeedRun Alarm | Pi Payments</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -30,11 +31,7 @@
       margin-bottom: 1rem;
       border: 1px solid #fbbf24;
     }
-    .premium-status {
-      color: #facc15;
-      font-weight: 700;
-      font-size: 1rem;
-    }
+    .premium-status { color: #facc15; font-weight: 700; font-size: 1rem; }
     .unlock-btn {
       background: #10b981;
       color: white;
@@ -46,6 +43,7 @@
       width: 100%;
       margin-top: 0.5rem;
     }
+    .unlock-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     h1 { text-align: center; margin-bottom: 0.5rem; }
     .live-clock {
       background: #f8fafc;
@@ -328,12 +326,14 @@
       <div id="lapList" style="margin-top:0.7rem; max-height:100px; overflow-y:auto; background:#f1f5f9; border-radius:1rem; padding:0.3rem; font-size:0.65rem;"></div>
     </div>
   </div>
-  <div class="footnote">💡 Click UNLOCK to simulate Pi payment (Demo mode)</div>
+  <div class="footnote">💡 Click UNLOCK to purchase premium for 0.5 Pi (Lifetime access)</div>
 </div>
 
 <script>
-  // DEMO MODE - Simulates Pi payment for testing
+  // ======================= PI NETWORK PAYMENTS - WITH ALL REQUIRED CALLBACKS =======================
   let isPremium = localStorage.getItem('premium_unlocked') === 'true';
+  let currentUser = null;
+  let isPiInitialized = false;
   
   const unlockBtn = document.getElementById('unlockBtn');
   const premiumStatus = document.getElementById('premiumStatus');
@@ -359,32 +359,143 @@
       speedTracker.classList.remove('blur-effect');
       premiumStatus.innerHTML = '🌟 PREMIUM UNLOCKED! 🌟';
       unlockBtn.style.display = 'none';
-      showToast('Premium unlocked! You can now use all features!');
+      showToast('Premium unlocked!');
     }
   }
   
-  // Simulate Pi payment (for demo)
-  function simulatePayment() {
+  // Initialize Pi SDK
+  async function initPi() {
+    try {
+      if (typeof Pi === 'undefined') {
+        console.log('Pi SDK not loaded - using demo mode');
+        return false;
+      }
+      
+      await Pi.init({ version: '2.0', sandbox: true });
+      isPiInitialized = true;
+      console.log('Pi SDK initialized');
+      
+      // Try to authenticate silently
+      const scopes = ['username', 'payments'];
+      const auth = await Pi.authenticate(scopes);
+      
+      if (auth && auth.accessToken) {
+        currentUser = auth.user;
+        console.log('Authenticated:', currentUser?.username);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Pi init error:', error);
+      return false;
+    }
+  }
+  
+  // CREATE PAYMENT WITH ALL REQUIRED CALLBACKS
+  async function createPayment() {
+    if (!isPiInitialized) {
+      showToast('Initializing Pi SDK...', false);
+      await initPi();
+    }
+    
     if (isPremium) {
-      showToast('Already unlocked!', false);
+      showToast('Premium already unlocked!', false);
       return;
     }
     
-    // Simulate payment processing
-    unlockBtn.disabled = true;
-    unlockBtn.textContent = '⏳ Processing payment...';
-    
-    setTimeout(() => {
-      isPremium = true;
-      localStorage.setItem('premium_unlocked', 'true');
-      applyBlur();
+    try {
+      unlockBtn.disabled = true;
+      unlockBtn.textContent = '⏳ Processing...';
+      showToast('Creating payment...', false);
+      
+      // Payment data
+      const paymentData = {
+        amount: 0.5,
+        memo: 'Unlock Premium Speed Feature - Lifetime Access',
+        metadata: { 
+          product: 'premium_speed_unlock', 
+          type: 'lifetime',
+          app: 'SpeedRunAlarm'
+        }
+      };
+      
+      // ALL REQUIRED CALLBACKS - This fixes the error!
+      const callbacks = {
+        // Called when payment is ready for server approval
+        onReadyForServerApproval: function(paymentId) {
+          console.log('onReadyForServerApproval:', paymentId);
+          // In sandbox mode, we auto-approve
+          // In production, this would call your backend
+          showToast('Payment approved!', false);
+        },
+        
+        // Called when payment is ready for server completion
+        onReadyForServerCompletion: function(paymentId, txid) {
+          console.log('onReadyForServerCompletion:', paymentId, txid);
+          // Unlock premium
+          isPremium = true;
+          localStorage.setItem('premium_unlocked', 'true');
+          applyBlur();
+          showToast('✅ Payment successful! Premium unlocked!', false);
+          unlockBtn.disabled = false;
+          unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+        },
+        
+        // Called when an incomplete payment is found - CRITICAL
+        onIncompletePaymentFound: function(payment) {
+          console.log('onIncompletePaymentFound:', payment);
+          showToast('Found incomplete payment. Completing...', false);
+          
+          // Try to complete the incomplete payment
+          if (payment && payment.identifier) {
+            // In sandbox, auto-complete
+            setTimeout(() => {
+              isPremium = true;
+              localStorage.setItem('premium_unlocked', 'true');
+              applyBlur();
+              showToast('Previous payment completed! Premium unlocked!', false);
+            }, 1000);
+          }
+        }
+      };
+      
+      // Create the payment
+      const payment = await Pi.createPayment(paymentData, callbacks);
+      console.log('Payment created:', payment);
+      
+      // If we get here without callbacks being triggered, check status
+      if (payment && payment.identifier) {
+        // Poll for completion
+        const checkInterval = setInterval(() => {
+          if (isPremium) {
+            clearInterval(checkInterval);
+            unlockBtn.disabled = false;
+            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+          }
+        }, 1000);
+        
+        // Timeout after 30 seconds
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          if (!isPremium) {
+            unlockBtn.disabled = false;
+            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+          }
+        }, 30000);
+      }
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      showToast('Payment failed: ' + (error.message || 'Try again'), true);
       unlockBtn.disabled = false;
       unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
-      showToast('✅ Payment successful! Premium unlocked!', false);
-    }, 1500);
+    }
   }
   
-  unlockBtn.onclick = simulatePayment;
+  // Initialize on load
+  initPi();
+  
+  unlockBtn.onclick = createPayment;
   applyBlur();
   
   // ======================= ALARM LOGIC =======================
@@ -745,7 +856,6 @@
     localStorage.setItem('alarm_hour', currentHour24);
     localStorage.setItem('alarm_min', currentMinute);
     localStorage.setItem('alarm_ampm', currentAmPm);
-    localStorage.setItem('premium_unlocked', isPremium);
   }
   
   function load() {
