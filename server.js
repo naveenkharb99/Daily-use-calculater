@@ -5,11 +5,13 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Your Pi Network API Key
 const PI_API_KEY = process.env.PI_API_KEY || 'gsk0h9k6wasm00xsii29q0hdlnaxegnsusnnqoneqsffimgyby1gjgbt1auwg8mn';
 
 app.use(cors());
 app.use(express.json());
 
+// Helper function to call Pi API
 async function callPiAPI(endpoint, method = 'GET', body = null) {
   const url = `https://api.minepi.com/v2${endpoint}`;
   const options = {
@@ -22,12 +24,21 @@ async function callPiAPI(endpoint, method = 'GET', body = null) {
   if (body) options.body = JSON.stringify(body);
   
   const response = await fetch(url, options);
-  return await response.json();
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(`Pi API error: ${JSON.stringify(data)}`);
+  }
+  return data;
 }
 
+// Approve payment endpoint
 app.post('/api/payments/approve', async (req, res) => {
   const { paymentId } = req.body;
-  if (!paymentId) return res.status(400).json({ error: 'paymentId required' });
+  
+  if (!paymentId) {
+    return res.status(400).json({ error: 'paymentId required' });
+  }
   
   try {
     const result = await callPiAPI(`/payments/${paymentId}/approve`, 'POST', { approve: true });
@@ -39,9 +50,13 @@ app.post('/api/payments/approve', async (req, res) => {
   }
 });
 
+// Complete payment endpoint
 app.post('/api/payments/complete', async (req, res) => {
   const { paymentId, txid } = req.body;
-  if (!paymentId || !txid) return res.status(400).json({ error: 'paymentId and txid required' });
+  
+  if (!paymentId || !txid) {
+    return res.status(400).json({ error: 'paymentId and txid required' });
+  }
   
   try {
     const result = await callPiAPI(`/payments/${paymentId}/complete`, 'POST', { txid });
@@ -53,11 +68,7 @@ app.post('/api/payments/complete', async (req, res) => {
   }
 });
 
-app.post('/api/payments/incomplete', async (req, res) => {
-  const { paymentId } = req.body;
-  res.json({ completed: false, paymentId });
-});
-
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: Date.now() });
 });
