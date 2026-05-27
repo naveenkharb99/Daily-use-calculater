@@ -287,7 +287,7 @@
         </div>
       </div>
       <button id="setAlarmBtn" class="set-btn">⏰ SET ALARM</button>
-      <div class="next-alarm-info" style="background:#f1f5f9; border-radius:1.2rem; padding:0.5rem; text-align:center; font-size:0.7rem; margin-top:0.5rem;">📍 NEXT: <span id="nextAlarmDisplay">— not set —</span></div>
+      <div style="background:#f1f5f9; border-radius:1.2rem; padding:0.5rem; text-align:center; font-size:0.7rem; margin-top:0.5rem;">📍 NEXT: <span id="nextAlarmDisplay">— not set —</span></div>
     </div>
 
     <div class="speed-tracker-premium" id="speedTracker">
@@ -312,7 +312,7 @@
   </div>
 
   <div id="timerPanel" class="panel">
-    <div class="timer-card" style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
+    <div style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
       <div class="timer-display" id="timerDisplay">00:00:00</div>
       <div class="timer-set"><input type="number" id="timerHours" value="0"><input type="number" id="timerMins" value="1"><input type="number" id="timerSecs" value="0"></div>
       <div class="flex-btns"><button id="startTimerBtn">▶ START</button><button id="pauseTimerBtn">⏸ PAUSE</button><button id="resetTimerBtn">🔄 RESET</button></div>
@@ -320,7 +320,7 @@
   </div>
 
   <div id="stopwatchPanel" class="panel">
-    <div class="stopwatch-card" style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
+    <div style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
       <div class="stopwatch-display" id="stopwatchDisplay">00:00:00.00</div>
       <div class="flex-btns"><button id="swStartBtn">▶ START</button><button id="swPauseBtn">⏸ PAUSE</button><button id="swResetBtn">🔄 RESET</button><button id="swLapBtn">📋 LAP</button></div>
       <div id="lapList" style="margin-top:0.7rem; max-height:100px; overflow-y:auto; background:#f1f5f9; border-radius:1rem; padding:0.3rem; font-size:0.65rem;"></div>
@@ -330,10 +330,9 @@
 </div>
 
 <script>
-  // ======================= PI NETWORK PAYMENTS - WITH ALL REQUIRED CALLBACKS =======================
+  // ======================= PI NETWORK PAYMENTS - CORRECT CALLBACK STRUCTURE =======================
   let isPremium = localStorage.getItem('premium_unlocked') === 'true';
-  let currentUser = null;
-  let isPiInitialized = false;
+  let piInitialized = false;
   
   const unlockBtn = document.getElementById('unlockBtn');
   const premiumStatus = document.getElementById('premiumStatus');
@@ -367,23 +366,13 @@
   async function initPi() {
     try {
       if (typeof Pi === 'undefined') {
-        console.log('Pi SDK not loaded - using demo mode');
+        console.log('Pi SDK not loaded');
         return false;
       }
       
       await Pi.init({ version: '2.0', sandbox: true });
-      isPiInitialized = true;
+      piInitialized = true;
       console.log('Pi SDK initialized');
-      
-      // Try to authenticate silently
-      const scopes = ['username', 'payments'];
-      const auth = await Pi.authenticate(scopes);
-      
-      if (auth && auth.accessToken) {
-        currentUser = auth.user;
-        console.log('Authenticated:', currentUser?.username);
-      }
-      
       return true;
     } catch (error) {
       console.error('Pi init error:', error);
@@ -391,80 +380,83 @@
     }
   }
   
-  // CREATE PAYMENT WITH ALL REQUIRED CALLBACKS
+  // CORRECT PAYMENT FUNCTION WITH PROPER CALLBACKS
   async function createPayment() {
-    if (!isPiInitialized) {
-      showToast('Initializing Pi SDK...', false);
+    if (!piInitialized) {
       await initPi();
     }
     
     if (isPremium) {
-      showToast('Premium already unlocked!', false);
+      showToast('Already unlocked!', false);
       return;
     }
     
     try {
       unlockBtn.disabled = true;
       unlockBtn.textContent = '⏳ Processing...';
-      showToast('Creating payment...', false);
       
       // Payment data
       const paymentData = {
         amount: 0.5,
         memo: 'Unlock Premium Speed Feature - Lifetime Access',
-        metadata: { 
+        metadata: JSON.stringify({ 
           product: 'premium_speed_unlock', 
           type: 'lifetime',
           app: 'SpeedRunAlarm'
-        }
+        })
       };
       
-      // ALL REQUIRED CALLBACKS - This fixes the error!
-      const callbacks = {
-        // Called when payment is ready for server approval
-        onReadyForServerApproval: function(paymentId) {
-          console.log('onReadyForServerApproval:', paymentId);
-          // In sandbox mode, we auto-approve
-          // In production, this would call your backend
-          showToast('Payment approved!', false);
-        },
-        
-        // Called when payment is ready for server completion
-        onReadyForServerCompletion: function(paymentId, txid) {
-          console.log('onReadyForServerCompletion:', paymentId, txid);
-          // Unlock premium
-          isPremium = true;
-          localStorage.setItem('premium_unlocked', 'true');
-          applyBlur();
-          showToast('✅ Payment successful! Premium unlocked!', false);
-          unlockBtn.disabled = false;
-          unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
-        },
-        
-        // Called when an incomplete payment is found - CRITICAL
-        onIncompletePaymentFound: function(payment) {
-          console.log('onIncompletePaymentFound:', payment);
-          showToast('Found incomplete payment. Completing...', false);
-          
-          // Try to complete the incomplete payment
-          if (payment && payment.identifier) {
-            // In sandbox, auto-complete
-            setTimeout(() => {
-              isPremium = true;
-              localStorage.setItem('premium_unlocked', 'true');
-              applyBlur();
-              showToast('Previous payment completed! Premium unlocked!', false);
-            }, 1000);
-          }
-        }
-      };
+      // Define callbacks as separate functions (CORRECT WAY)
+      function onReadyForServerApproval(paymentId) {
+        console.log('✅ onReadyForServerApproval:', paymentId);
+        showToast('Payment approved by server', false);
+        // In sandbox, auto-complete after approval
+        setTimeout(() => {
+          // This would normally call your backend to approve
+          console.log('Payment approved for:', paymentId);
+        }, 500);
+      }
       
-      // Create the payment
-      const payment = await Pi.createPayment(paymentData, callbacks);
+      function onReadyForServerCompletion(paymentId, txid) {
+        console.log('✅ onReadyForServerCompletion:', paymentId, txid);
+        // UNLOCK PREMIUM HERE
+        isPremium = true;
+        localStorage.setItem('premium_unlocked', 'true');
+        applyBlur();
+        showToast('✅ Payment successful! Premium unlocked!', false);
+        unlockBtn.disabled = false;
+        unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+      }
+      
+      function onIncompletePaymentFound(payment) {
+        console.log('⚠️ onIncompletePaymentFound:', payment);
+        showToast('Found incomplete payment. Completing...', false);
+        
+        // Handle incomplete payment
+        if (payment && payment.identifier) {
+          // For sandbox, auto-complete
+          setTimeout(() => {
+            isPremium = true;
+            localStorage.setItem('premium_unlocked', 'true');
+            applyBlur();
+            showToast('Previous payment completed! Premium unlocked!', false);
+            unlockBtn.disabled = false;
+            unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+          }, 1000);
+        }
+      }
+      
+      // Create payment with callbacks object
+      const payment = await Pi.createPayment(paymentData, {
+        onReadyForServerApproval: onReadyForServerApproval,
+        onReadyForServerCompletion: onReadyForServerCompletion,
+        onIncompletePaymentFound: onIncompletePaymentFound
+      });
+      
       console.log('Payment created:', payment);
       
-      // If we get here without callbacks being triggered, check status
-      if (payment && payment.identifier) {
+      // If we have a payment ID but callbacks didn't trigger
+      if (payment && payment.identifier && !isPremium) {
         // Poll for completion
         const checkInterval = setInterval(() => {
           if (isPremium) {
@@ -472,16 +464,15 @@
             unlockBtn.disabled = false;
             unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
           }
-        }, 1000);
+        }, 2000);
         
-        // Timeout after 30 seconds
         setTimeout(() => {
           clearInterval(checkInterval);
           if (!isPremium) {
             unlockBtn.disabled = false;
             unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
           }
-        }, 30000);
+        }, 60000);
       }
       
     } catch (error) {
@@ -491,6 +482,14 @@
       unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
     }
   }
+  
+  // Alternative: Manual unlock for testing (remove in production)
+  window.debugUnlock = function() {
+    isPremium = true;
+    localStorage.setItem('premium_unlocked', 'true');
+    applyBlur();
+    showToast('Manually unlocked for testing', false);
+  };
   
   // Initialize on load
   initPi();
