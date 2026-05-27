@@ -1,5 +1,13 @@
 // server.js - Express backend for Pi Network payments
 // Install: npm install express cors axios dotenv
+const scopes = ['payments'];  // Only payments scope
+
+function onIncompletePaymentFound(payment) {
+    console.log(payment);
+}
+
+Pi.authenticate(scopes, onIncompletePaymentFound)
+
 const scopes = ['username', 'payments'];
 require('dotenv').config();
 const express = require('express');
