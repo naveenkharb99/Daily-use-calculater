@@ -2,26 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-  <title>SpeedRun Alarm | Pi Payments</title>
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpeedRun Alarm - Demo (Test Mode)</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background: #ffffff;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-family: system-ui, sans-serif;
       padding: 12px;
     }
-
     .app-container {
       max-width: 500px;
       width: 100%;
@@ -29,95 +22,39 @@
       border-radius: 2rem;
       box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
       padding: 1.2rem;
-      border: 1px solid #f0f0f0;
     }
-
-    .pi-auth-section, .pi-payment-section {
+    .pi-payment-section {
       background: linear-gradient(135deg, #1a2a3a, #0f1a24);
       border-radius: 1.3rem;
       padding: 1rem;
       margin-bottom: 1rem;
       border: 1px solid #fbbf24;
     }
-
-    .user-info, .payment-info {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .username-display, .premium-status {
+    .premium-status {
       color: #facc15;
       font-weight: 700;
       font-size: 1rem;
     }
-
-    .auth-status, .payment-status {
-      font-size: 0.7rem;
-      color: #94a3b8;
-    }
-
-    .pi-btn {
-      background: #facc15;
-      color: #1e293b;
+    .unlock-btn {
+      background: #10b981;
+      color: white;
       border: none;
       padding: 0.5rem 1rem;
       border-radius: 2rem;
       font-weight: 700;
-      font-size: 0.75rem;
       cursor: pointer;
-    }
-
-    .unlock-btn {
-      background: #10b981;
       width: 100%;
       margin-top: 0.5rem;
     }
-
-    .unlock-btn:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #2c7a6e, #1e5a4f);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      text-align: center;
-    }
-
-    .premium-badge {
-      background: #fef3c7;
-      text-align: center;
-      padding: 0.25rem;
-      border-radius: 40px;
-      font-size: 0.65rem;
-      font-weight: 800;
-      color: #b45309;
-      margin: 0.3rem 0;
-    }
-
+    h1 { text-align: center; margin-bottom: 0.5rem; }
     .live-clock {
       background: #f8fafc;
       border-radius: 1.5rem;
       padding: 0.5rem;
       text-align: center;
       margin: 0.6rem 0;
-      border: 1px solid #e2e8f0;
     }
-
-    #liveClock {
-      font-family: monospace;
-      font-size: 2rem;
-      font-weight: 700;
-      color: #1e293b;
-    }
-
+    #liveClock { font-family: monospace; font-size: 2rem; font-weight: 700; }
     .tab-bar {
       display: flex;
       gap: 0.4rem;
@@ -126,164 +63,99 @@
       padding: 0.25rem;
       margin-bottom: 0.8rem;
     }
-
     .tab-btn {
       flex: 1;
       background: transparent;
       border: none;
-      padding: 0.5rem 0;
+      padding: 0.5rem;
       border-radius: 1.8rem;
       font-weight: 600;
-      font-size: 0.75rem;
-      color: #64748b;
       cursor: pointer;
     }
-
-    .tab-btn.active {
-      background: #2c7a6e;
-      color: white;
-    }
-
-    .panel {
-      display: none;
-    }
-
-    .panel.active-panel {
-      display: block;
-    }
-
+    .tab-btn.active { background: #2c7a6e; color: white; }
+    .panel { display: none; }
+    .panel.active-panel { display: block; }
     .alarm-card {
       background: #f8fafc;
       border-radius: 1.3rem;
       padding: 0.9rem;
       border: 1px solid #e2e8f0;
     }
-
     .time-row {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 0.6rem;
-      flex-wrap: wrap;
       margin-bottom: 0.7rem;
     }
-
     .time-box {
       background: white;
       border-radius: 1.5rem;
       padding: 0.2rem 0.6rem;
-      display: flex;
-      align-items: center;
-      gap: 0.1rem;
       border: 1px solid #cbd5e1;
     }
-
     .time-box input {
       background: transparent;
       border: none;
       font-size: 1.5rem;
       width: 55px;
       text-align: center;
-      color: #1e293b;
-      font-family: monospace;
-      font-weight: 700;
       outline: none;
     }
-
     .ampm-select {
       background: white;
       border-radius: 1.8rem;
       padding: 0.1rem;
       display: flex;
-      gap: 0.1rem;
       border: 1px solid #cbd5e1;
     }
-
     .ampm-btn {
       background: transparent;
       border: none;
       padding: 0.3rem 0.8rem;
       border-radius: 1.8rem;
-      font-weight: 700;
-      font-size: 0.8rem;
       cursor: pointer;
-      color: #64748b;
     }
-
-    .ampm-btn.active-ampm {
-      background: #2c7a6e;
-      color: white;
-    }
-
+    .ampm-btn.active-ampm { background: #2c7a6e; color: white; }
     .repeat-options {
       display: flex;
       gap: 0.5rem;
       justify-content: center;
       margin: 0.6rem 0;
     }
-
     .repeat-btn {
       background: #e2e8f0;
       border: none;
       padding: 0.3rem 0.8rem;
       border-radius: 2rem;
-      font-weight: 600;
-      font-size: 0.7rem;
       cursor: pointer;
-      color: #334155;
     }
-
-    .repeat-btn.active-repeat {
-      background: #2c7a6e;
-      color: white;
-    }
-
+    .repeat-btn.active-repeat { background: #2c7a6e; color: white; }
     .weekdays {
       display: flex;
       gap: 0.3rem;
       justify-content: center;
-      flex-wrap: wrap;
       margin: 0.5rem 0;
     }
-
     .day-btn {
       background: #e2e8f0;
       border: none;
       width: 34px;
       padding: 0.3rem 0;
       border-radius: 2rem;
-      font-weight: 600;
-      font-size: 0.7rem;
       cursor: pointer;
-      color: #334155;
     }
-
-    .day-btn.selected {
-      background: #2c7a6e;
-      color: white;
-    }
-
+    .day-btn.selected { background: #2c7a6e; color: white; }
     .set-btn {
       background: #2c7a6e;
       color: white;
       width: 100%;
       padding: 0.6rem;
       border-radius: 2rem;
-      font-weight: bold;
       border: none;
       cursor: pointer;
       margin-top: 0.5rem;
     }
-
-    .next-alarm-info {
-      background: #f1f5f9;
-      border-radius: 1.2rem;
-      padding: 0.5rem;
-      text-align: center;
-      font-size: 0.7rem;
-      margin-top: 0.5rem;
-    }
-
     .speed-tracker-premium {
       background: linear-gradient(135deg, #1e293b, #0f172a);
       border-radius: 1.3rem;
@@ -291,14 +163,7 @@
       margin-top: 0.8rem;
       border: 1px solid #fbbf24;
     }
-
-    .speed-value {
-      font-size: 2rem;
-      font-weight: 800;
-      color: #facc15;
-      text-align: center;
-    }
-
+    .speed-value { font-size: 2rem; font-weight: 800; color: #facc15; text-align: center; }
     .progress-bar {
       background: #334155;
       border-radius: 1rem;
@@ -306,83 +171,58 @@
       margin: 0.6rem 0;
       overflow: hidden;
     }
-
     .progress-fill {
       background: #facc15;
       width: 0%;
       height: 100%;
-      border-radius: 1rem;
       transition: width 0.2s;
     }
-
     .ringing-locked {
       margin-top: 0.8rem;
       background: #fee2e2;
       border-radius: 1.3rem;
       padding: 0.8rem;
     }
-
     .motion-card {
       background: white;
       border-radius: 1.2rem;
       padding: 0.6rem;
       text-align: center;
     }
-
     .dismiss-locked-btn {
       width: 100%;
       background: #cbd5e1;
       border: none;
       padding: 0.6rem;
       border-radius: 2rem;
-      font-weight: bold;
       margin-top: 0.5rem;
       cursor: not-allowed;
     }
-
-    .dismiss-locked-btn.unlocked {
-      background: #ef4444;
-      color: white;
-      cursor: pointer;
-    }
-
+    .dismiss-locked-btn.unlocked { background: #ef4444; color: white; cursor: pointer; }
     .simulate-step {
       background: #f59e0b;
       margin-top: 5px;
       padding: 5px 12px;
       border: none;
       border-radius: 2rem;
-      font-weight: bold;
       cursor: pointer;
       color: white;
     }
-
-    .timer-card, .stopwatch-card {
-      background: #f8fafc;
-      border-radius: 1.3rem;
-      padding: 0.9rem;
-      border: 1px solid #e2e8f0;
-    }
-
     .timer-display, .stopwatch-display {
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-family: monospace;
-      font-weight: 700;
       text-align: center;
       background: white;
       padding: 0.5rem;
       border-radius: 1.3rem;
-      color: #1e293b;
       border: 1px solid #e2e8f0;
     }
-
     .timer-set {
       display: flex;
       gap: 0.4rem;
       justify-content: center;
       margin: 0.7rem 0;
     }
-
     .timer-set input {
       background: white;
       border: 1px solid #cbd5e1;
@@ -391,71 +231,33 @@
       width: 60px;
       text-align: center;
     }
-
-    .flex-btns {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    button {
-      background: #e2e8f0;
-      border: none;
-      padding: 0.4rem 0.8rem;
-      border-radius: 2rem;
-      color: #334155;
-      font-weight: 600;
-      font-size: 0.75rem;
-      cursor: pointer;
-    }
-
-    .stopwatch-laps {
-      margin-top: 0.7rem;
-      max-height: 100px;
-      overflow-y: auto;
-      background: #f1f5f9;
-      border-radius: 1rem;
-      padding: 0.3rem;
-      font-size: 0.65rem;
-    }
-
-    .footnote {
-      font-size: 0.55rem;
-      text-align: center;
-      color: #94a3b8;
-      margin-top: 0.8rem;
-    }
-
-    .blur-effect {
-      filter: blur(5px);
-      pointer-events: none;
-      user-select: none;
+    .flex-btns { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    button { background: #e2e8f0; border: none; padding: 0.4rem 0.8rem; border-radius: 2rem; cursor: pointer; }
+    .blur-effect { filter: blur(5px); pointer-events: none; user-select: none; }
+    .footnote { font-size: 0.55rem; text-align: center; color: #94a3b8; margin-top: 0.8rem; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 12px;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
 <div class="app-container">
   <h1>🏃‍♂️ SPEED RUN ALARM</h1>
-  <div class="premium-badge">⭐ PI NETWORK POWERED ⭐</div>
 
-  <div class="pi-auth-section">
-    <div class="user-info">
-      <div>
-        <div class="username-display" id="usernameDisplay">Not signed in</div>
-        <div class="auth-status" id="authStatus">🔐 Sign in with Pi Network</div>
-      </div>
-      <button id="signInBtn" class="pi-btn">🔓 Sign in</button>
-    </div>
-  </div>
-
-  <div class="pi-payment-section" id="paymentSection" style="display:none;">
-    <div class="payment-info">
-      <div>
-        <div class="premium-status" id="premiumStatus">⚡ Premium: Locked</div>
-        <div class="payment-status" id="paymentStatus">🔓 Unlock for 0.5 Pi (Lifetime)</div>
-      </div>
-      <button id="unlockBtn" class="pi-btn unlock-btn">💎 Unlock Now - 0.5 Pi 💎</button>
+  <div class="pi-payment-section">
+    <div>
+      <div class="premium-status" id="premiumStatus">⚡ Premium: LOCKED</div>
+      <div style="font-size: 0.7rem; color: #94a3b8; margin-bottom: 0.5rem;">🔓 Unlock for 0.5 Pi (Lifetime)</div>
+      <button id="unlockBtn" class="unlock-btn">💎 UNLOCK PREMIUM - 0.5 Pi 💎</button>
     </div>
   </div>
 
@@ -470,15 +272,8 @@
   <div id="alarmPanel" class="panel active-panel">
     <div class="alarm-card" id="alarmContent">
       <div class="time-row">
-        <div class="time-box">
-          <input type="number" id="hourInput" min="1" max="12" value="7" step="1">
-          <span>:</span>
-          <input type="number" id="minuteInput" min="0" max="59" value="30" step="1">
-        </div>
-        <div class="ampm-select">
-          <button id="amBtn" class="ampm-btn active-ampm">AM</button>
-          <button id="pmBtn" class="ampm-btn">PM</button>
-        </div>
+        <div class="time-box"><input type="number" id="hourInput" min="1" max="12" value="7" step="1"><span>:</span><input type="number" id="minuteInput" min="0" max="59" value="30" step="1"></div>
+        <div class="ampm-select"><button id="amBtn" class="ampm-btn active-ampm">AM</button><button id="pmBtn" class="ampm-btn">PM</button></div>
       </div>
       <div class="repeat-options">
         <button id="repeatOnceBtn" class="repeat-btn active-repeat">Once</button>
@@ -487,20 +282,20 @@
       </div>
       <div id="weeklyContainer" style="display: none;">
         <div class="weekdays">
-          <button data-day="0">S</button><button data-day="1">M</button>
-          <button data-day="2">T</button><button data-day="3">W</button>
-          <button data-day="4">T</button><button data-day="5">F</button>
-          <button data-day="6">S</button>
+          <button data-day="0" class="day-btn">S</button><button data-day="1" class="day-btn">M</button>
+          <button data-day="2" class="day-btn">T</button><button data-day="3" class="day-btn">W</button>
+          <button data-day="4" class="day-btn">T</button><button data-day="5" class="day-btn">F</button>
+          <button data-day="6" class="day-btn">S</button>
         </div>
       </div>
       <button id="setAlarmBtn" class="set-btn">⏰ SET ALARM</button>
-      <div class="next-alarm-info">📍 <strong>NEXT:</strong> <span id="nextAlarmDisplay">— not set —</span></div>
+      <div class="next-alarm-info" style="background:#f1f5f9; border-radius:1.2rem; padding:0.5rem; text-align:center; font-size:0.7rem; margin-top:0.5rem;">📍 NEXT: <span id="nextAlarmDisplay">— not set —</span></div>
     </div>
 
     <div class="speed-tracker-premium" id="speedTracker">
       <div class="speed-value"><span id="currentSpeed">0.00</span> km/h</div>
       <div class="progress-bar"><div class="progress-fill" id="speedProgress"></div></div>
-      <div id="speedStatusMsg" style="text-align:center; font-size:0.7rem; color:#94a3b8;">📱 Move your phone</div>
+      <div style="text-align:center; font-size:0.7rem;" id="speedStatusMsg">📱 Move your phone</div>
     </div>
 
     <div id="ringingSection" style="display: none;">
@@ -519,143 +314,79 @@
   </div>
 
   <div id="timerPanel" class="panel">
-    <div class="timer-card">
+    <div class="timer-card" style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
       <div class="timer-display" id="timerDisplay">00:00:00</div>
-      <div class="timer-set">
-        <input type="number" id="timerHours" value="0"><input type="number" id="timerMins" value="1"><input type="number" id="timerSecs" value="0">
-      </div>
-      <div class="flex-btns">
-        <button id="startTimerBtn">▶ START</button>
-        <button id="pauseTimerBtn">⏸ PAUSE</button>
-        <button id="resetTimerBtn">🔄 RESET</button>
-      </div>
+      <div class="timer-set"><input type="number" id="timerHours" value="0"><input type="number" id="timerMins" value="1"><input type="number" id="timerSecs" value="0"></div>
+      <div class="flex-btns"><button id="startTimerBtn">▶ START</button><button id="pauseTimerBtn">⏸ PAUSE</button><button id="resetTimerBtn">🔄 RESET</button></div>
     </div>
   </div>
 
   <div id="stopwatchPanel" class="panel">
-    <div class="stopwatch-card">
+    <div class="stopwatch-card" style="background:#f8fafc; border-radius:1.3rem; padding:0.9rem;">
       <div class="stopwatch-display" id="stopwatchDisplay">00:00:00.00</div>
-      <div class="flex-btns">
-        <button id="swStartBtn">▶ START</button>
-        <button id="swPauseBtn">⏸ PAUSE</button>
-        <button id="swResetBtn">🔄 RESET</button>
-        <button id="swLapBtn">📋 LAP</button>
-      </div>
-      <div id="lapList" class="stopwatch-laps"></div>
+      <div class="flex-btns"><button id="swStartBtn">▶ START</button><button id="swPauseBtn">⏸ PAUSE</button><button id="swResetBtn">🔄 RESET</button><button id="swLapBtn">📋 LAP</button></div>
+      <div id="lapList" style="margin-top:0.7rem; max-height:100px; overflow-y:auto; background:#f1f5f9; border-radius:1rem; padding:0.3rem; font-size:0.65rem;"></div>
     </div>
   </div>
-  <div class="footnote">💡 Pay 0.5 Pi once to remove blur & unlock premium speed feature</div>
+  <div class="footnote">💡 Click UNLOCK to simulate Pi payment (Demo mode)</div>
 </div>
 
 <script>
-  // ======================= PI SETUP =======================
+  // DEMO MODE - Simulates Pi payment for testing
   let isPremium = localStorage.getItem('premium_unlocked') === 'true';
-  let currentUser = null;
-
-  const signInBtn = document.getElementById('signInBtn');
-  const usernameDisplay = document.getElementById('usernameDisplay');
-  const authStatus = document.getElementById('authStatus');
-  const paymentSection = document.getElementById('paymentSection');
+  
   const unlockBtn = document.getElementById('unlockBtn');
   const premiumStatus = document.getElementById('premiumStatus');
-  const paymentStatusMsg = document.getElementById('paymentStatus');
   const alarmContent = document.getElementById('alarmContent');
-  const speedTrackerDiv = document.getElementById('speedTracker');
-
+  const speedTracker = document.getElementById('speedTracker');
+  
+  function showToast(msg, isError = false) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.style.background = isError ? '#dc2626' : '#10b981';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+  
   function applyBlur() {
     if (!isPremium) {
       alarmContent.classList.add('blur-effect');
-      speedTrackerDiv.classList.add('blur-effect');
+      speedTracker.classList.add('blur-effect');
       premiumStatus.innerHTML = '⚡ Premium: LOCKED - Pay 0.5 Pi ⚡';
     } else {
       alarmContent.classList.remove('blur-effect');
-      speedTrackerDiv.classList.remove('blur-effect');
+      speedTracker.classList.remove('blur-effect');
       premiumStatus.innerHTML = '🌟 PREMIUM UNLOCKED! 🌟';
-      paymentStatusMsg.innerHTML = '✅ Premium unlocked!';
       unlockBtn.style.display = 'none';
+      showToast('Premium unlocked! You can now use all features!');
     }
   }
-
-  // Sign in with Pi
-  async function signIn() {
-    try {
-      if (typeof Pi === 'undefined') {
-        authStatus.innerText = '❌ Please open in Pi Browser';
-        return;
-      }
-      
-      authStatus.innerText = 'Initializing...';
-      await Pi.init({ version: '2.0', sandbox: true });
-      
-      authStatus.innerText = 'Authenticating...';
-      const scopes = ['username', 'payments'];
-      const auth = await Pi.authenticate(scopes);
-      
-      if (auth && auth.accessToken) {
-        currentUser = auth.user;
-        const name = auth.user?.username || 'Pi User';
-        usernameDisplay.innerText = `👤 ${name}`;
-        authStatus.innerText = '✅ Signed in!';
-        paymentSection.style.display = 'block';
-        signInBtn.style.display = 'none';
-      }
-    } catch (error) {
-      console.error(error);
-      authStatus.innerText = '❌ Sign in failed';
-    }
-  }
-
-  // Create Payment - SIMPLIFIED VERSION
-  async function makePayment() {
-    if (!currentUser) {
-      paymentStatusMsg.innerText = '❌ Please sign in first';
-      return;
-    }
-    
+  
+  // Simulate Pi payment (for demo)
+  function simulatePayment() {
     if (isPremium) {
-      paymentStatusMsg.innerText = '✅ Already unlocked!';
+      showToast('Already unlocked!', false);
       return;
     }
     
-    try {
-      unlockBtn.disabled = true;
-      paymentStatusMsg.innerText = 'Creating payment...';
-      
-      const payment = await Pi.createPayment({
-        amount: 0.5,
-        memo: 'Unlock Premium Speed Feature - Lifetime Access',
-        metadata: { product: 'premium_speed_unlock' }
-      }, {
-        onIncompletePaymentFound: function(payment) {
-          console.log('Incomplete payment:', payment);
-          // Auto-complete premium for sandbox
-          isPremium = true;
-          localStorage.setItem('premium_unlocked', 'true');
-          applyBlur();
-          paymentStatusMsg.innerText = '✅ Payment completed! Premium unlocked!';
-          unlockBtn.disabled = false;
-        }
-      });
-      
-      // After payment success
-      if (payment && payment.identifier) {
-        isPremium = true;
-        localStorage.setItem('premium_unlocked', 'true');
-        applyBlur();
-        paymentStatusMsg.innerText = '✅ Payment successful! Welcome to Premium!';
-      }
-      
-    } catch (error) {
-      console.error('Payment error:', error);
-      paymentStatusMsg.innerText = '❌ Payment failed: ' + (error.message || 'Try again');
+    // Simulate payment processing
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = '⏳ Processing payment...';
+    
+    setTimeout(() => {
+      isPremium = true;
+      localStorage.setItem('premium_unlocked', 'true');
+      applyBlur();
       unlockBtn.disabled = false;
-    }
+      unlockBtn.textContent = '💎 UNLOCK PREMIUM - 0.5 Pi 💎';
+      showToast('✅ Payment successful! Premium unlocked!', false);
+    }, 1500);
   }
-
-  signInBtn.onclick = signIn;
-  unlockBtn.onclick = makePayment;
+  
+  unlockBtn.onclick = simulatePayment;
   applyBlur();
-
+  
   // ======================= ALARM LOGIC =======================
   let alarmRepeatType = "once";
   let selectedWeekDays = [];
@@ -885,7 +616,6 @@
   }
   function startBeep() { if(beepInt) clearInterval(beepInt); playBeep(); beepInt = setInterval(()=>{ if(isRinging) playBeep(); },1600); }
   
-  // Speed tracker
   function initSpeed() {
     if(window.DeviceMotionEvent) {
       const handler = (e) => {
@@ -1035,9 +765,6 @@
     let h = localStorage.getItem('alarm_hour'); if(h) currentHour24 = parseInt(h);
     let m = localStorage.getItem('alarm_min'); if(m) currentMinute = parseInt(m);
     let ap = localStorage.getItem('alarm_ampm'); if(ap) setAmPm(ap);
-    let prem = localStorage.getItem('premium_unlocked');
-    if(prem === 'true') isPremium = true;
-    applyBlur();
     schedule();
   }
   load();
