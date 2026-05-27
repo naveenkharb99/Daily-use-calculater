@@ -680,7 +680,7 @@
     try {
       authStatus.innerText = '🔄 Authenticating...';
       const scopes = ['username', 'payments'];
-      const auth = await Pi.authenticate(scopes, { onIncompletePending: true });
+      const auth = await Pi.authenticate(scopes, { onIncompletePaymentFound: true });
       
       if (auth && auth.accessToken) {
         piAccessToken = auth.accessToken;
